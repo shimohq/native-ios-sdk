@@ -10,6 +10,7 @@
 
 #import <WebKit/WebKit.h>
 #import <Masonry/Masonry.h>
+#import "SHMWebView.h"
 
 @interface SHMWebViewController ()
 
@@ -32,7 +33,7 @@
     // Do any additional setup after loading the view.
     self.view.backgroundColor = [UIColor whiteColor];
     
-    WKWebView *webview = [self createWebView];
+    WKWebView *webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
     
     [self.view addSubview:webview];
     [webview mas_makeConstraints:^(MASConstraintMaker *make) {
@@ -43,33 +44,6 @@
     }];
     
     [webview loadRequest:[NSURLRequest requestWithURL:self.url]];
-}
-
-- (WKWebView *)createWebView {
-    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
-    config.selectionGranularity = WKSelectionGranularityDynamic;
-    config.processPool = [[WKProcessPool alloc] init];
-    config.websiteDataStore = [WKWebsiteDataStore defaultDataStore];
-    @try {
-        [config setValue:[NSNumber numberWithBool:YES] forKey:@"allowUniversalAccessFromFileURLs"];
-    } @catch (NSException *exception) {
-        NSLog(@"%@", exception);
-    }
-    
-    WKPreferences *preferences = [[WKPreferences alloc] init];
-    @try {
-        [preferences setValue:[NSNumber numberWithBool:YES] forKey:@"allowFileAccessFromFileURLs"];
-    } @catch (NSException *exception) {
-        NSLog(@"%@", exception);
-    }
-    config.preferences = preferences;
-    
-    WKWebView *webView = [[WKWebView alloc] initWithFrame:self.view.bounds configuration:config];
-    
-    webView.opaque = webView.scrollView.opaque = NO;
-    webView.backgroundColor = webView.scrollView.backgroundColor = [UIColor clearColor];
-    
-    return webView;
 }
 
 @end

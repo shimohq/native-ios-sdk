@@ -40,14 +40,20 @@
 
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 1;
+    return 2;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"SHMNativeSDK"];
     
-    cell.textLabel.text = @"shimo.im";
-    cell.detailTextLabel.text = @"https://shimo.im";
+    if (indexPath.row == 0) {
+        cell.textLabel.text = @"demo";
+        cell.detailTextLabel.text = @"https://shimo-app-test.oss-cn-beijing.aliyuncs.com/resource/native-sdk/index.html";
+    } else {
+        cell.textLabel.text = @"首页";
+        cell.detailTextLabel.text = @"https://shimo.im/recent";
+    }
+
     
     return cell;
 }
