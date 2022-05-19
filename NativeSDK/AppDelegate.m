@@ -19,10 +19,7 @@
     // Override point for customization after application launch.
     
     if (@available(iOS 13.0, *)) {
-        // TODO
-//        SHMWindow *window = [[SHMWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-//        [window makeKeyAndVisible];
-//        self.window = window;
+        // do nothing
     } else {
         SHMWindow *window = [[SHMWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
         [window makeKeyAndVisible];
