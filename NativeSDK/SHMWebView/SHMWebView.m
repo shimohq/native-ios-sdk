@@ -37,6 +37,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+        _applicationNameForUserAgent = [NSString stringWithFormat:@"SMWV/1.35 (HWMT-730; lang: %@; dir: %@)", @"zh-CN", @"ltr"];
         _supportedMethods = @[SHMWVContextMethodSetNavigatorTitle, SHMWVContextMethodSetNavigatorBack, SHMWVContextMethodSetNavigatorButtons];
         _buttonScripts = [NSMutableDictionary dictionary];
         _UIDelegate = self;
@@ -157,8 +158,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     WKWebViewConfiguration *config = self.configuration ?: [[WKWebViewConfiguration alloc] init];
     
     // 设置 userAgent
-    // 根据实际情况填充 lang 和 dir 字段
-    config.applicationNameForUserAgent = [NSString stringWithFormat:@"SMWV/1.35 (HWMT-730; lang: %@; dir: %@)", @"zh-CN", @"ltr"];
+    config.applicationNameForUserAgent = self.applicationNameForUserAgent;
 
     // 添加 userContentController
     config.userContentController = [self createUserContentController];
