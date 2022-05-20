@@ -8,33 +8,30 @@
 
 #import "SHMWebViewController.h"
 
-#import <WebKit/WebKit.h>
 #import <Masonry/Masonry.h>
-#import "SHMWebView.h"
 
 @interface SHMWebViewController () <SHMWebViewDelegate, WKUIDelegate, WKNavigationDelegate>
 
-@property (nonnull, nonatomic, strong) NSURL *url;
-@property (nonnull, nonatomic, strong) NSString *host;
-@property (nonnull, nonatomic, strong) SHMWebView *webview;
+@property (nullable, nonatomic, strong) NSURL *url;
+@property (nullable, nonatomic, strong) NSString *host;
+@property (nullable, nonatomic, strong) SHMWebView *webview;
 
-@property (nonatomic, strong) UIBarButtonItem *shareBarButtonItem;
-@property (nonatomic, strong) UIBarButtonItem *menuBarButtonItem;
-@property (nonatomic, strong) NSString *shareType;
-@property (nonatomic, strong) NSString *sharePayload;
-@property (nonatomic, strong) NSString *menuType;
-@property (nonatomic, strong) NSString *menuPayload;
+@property (nonatomic, strong) SHMWebViewNavigatorButton *shareNavigatorButton;
+@property (nonatomic, strong) SHMWebViewNavigatorButton *menuNavigatorButton;
 
 @end
 
 @implementation SHMWebViewController
 
-- (instancetype)initWithUrl:(nonnull NSURL *)url {
-    NSString *host = url.host;
-    return [self initWithUrl:url host:host];
+- (instancetype)initWithWebView:(SHMWebView *)webview {
+    self = [super init];
+    if (self) {
+        _webview = webview;
+    }
+    return self;
 }
 
-- (instancetype)initWithUrl:(nonnull NSURL *)url host:(NSString *)host {
+- (instancetype)initWithUrl:(NSURL *)url host:(NSString *)host {
     self = [super init];
     if (self) {
         _url = url;
@@ -52,14 +49,17 @@
         [[UIBarButtonItem alloc] initWithTitle:@"关闭" style:UIBarButtonItemStylePlain target:self action:@selector(onClose)]
     ];
     
-    self.webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
-    self.webview.host = self.host;
-    self.webview.url = self.url;
+    if (!self.webview) {
+        self.webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
+        self.webview.host = self.host;
+        self.webview.url = self.url;
+    }
+    
     self.webview.shmWebViewDelegate = self;
     // TODO SHMWebView 已实现的 UIDelegate 不满足要求的时候才设置
-    self.webview.webview.UIDelegate = self;
+    self.webview.UIDelegate = self;
     // TODO SHMWebView 已实现的 navigationDelegate 不满足要求的时候才设置
-    self.webview.webview.navigationDelegate = self;
+    self.webview.navigationDelegate = self;
     
     [self.view addSubview:self.webview];
     [self.webview mas_makeConstraints:^(MASConstraintMaker *make) {
@@ -85,40 +85,32 @@
 }
 
 - (void)onShare {
-    [self.webview clickButtonWithType:self.shareType payload:self.sharePayload];
+    [self.webview clickButtonWithNavigatorButton:self.shareNavigatorButton];
 }
 
 - (void)onMenu {
-    [self.webview clickButtonWithType:self.menuType payload:self.menuPayload];
+    [self.webview clickButtonWithNavigatorButton:self.menuNavigatorButton];
 }
 
 #pragma mark - SHMWebViewDelegate
 
-- (void)webview:(nonnull SHMWebView *)webview setNavigatorTitle:(nonnull NSString *)title {
-    self.title = title;
+- (void)webview:(nonnull SHMWebView *)webview setNavigatorTitle:(nullable NSString *)title {
+    self.title = title ? title : @"石墨";
 }
 
-- (void)webview:(nonnull SHMWebView *)webview setNavigatorButtonWithType:(nonnull NSString *)type payload:(nonnull NSString *)payload {
-    if ([@"share" isEqualToString:type]) {
-        self.shareType = type;
-        self.sharePayload = payload;
-        if (!self.shareBarButtonItem) {
-            self.shareBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Share" style:UIBarButtonItemStylePlain target:self action:@selector(onShare)];
-        }
-    } else if ([@"menu" isEqualToString:type]) {
-        self.menuType = type;
-        self.menuPayload = payload;
-        if (!self.menuBarButtonItem) {
-            self.menuBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Menu" style:UIBarButtonItemStylePlain target:self action:@selector(onMenu)];
-        }
-    }
+- (void)webview:(nonnull SHMWebView *)webview setNavigatorButtons:(nonnull NSArray<SHMWebViewNavigatorButton *> *)buttons {
     NSMutableArray *rightBarButtonItems = [NSMutableArray array];
-    if (self.shareBarButtonItem) {
-        [rightBarButtonItems addObject:self.shareBarButtonItem];
-    }
-    if (self.menuBarButtonItem) {
-        [rightBarButtonItems addObject:self.menuBarButtonItem];
-    }
+    [buttons enumerateObjectsUsingBlock:^(SHMWebViewNavigatorButton * _Nonnull button, NSUInteger idx, BOOL * _Nonnull stop) {
+        if ([@"share" isEqualToString:button.type]) {
+            self.shareNavigatorButton = button;
+            UIBarButtonItem *shareBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Share" style:UIBarButtonItemStylePlain target:self action:@selector(onShare)];
+            [rightBarButtonItems addObject:shareBarButtonItem];
+        } else if ([@"menu" isEqualToString:button.type]) {
+            self.menuNavigatorButton = button;
+            UIBarButtonItem *menuBarButtonItem = [[UIBarButtonItem alloc] initWithTitle:@"Menu" style:UIBarButtonItemStylePlain target:self action:@selector(onMenu)];
+            [rightBarButtonItems addObject:menuBarButtonItem];
+        }
+    }];
     self.navigationItem.rightBarButtonItems = rightBarButtonItems;
 }
 
@@ -168,20 +160,30 @@
     // 非石墨外部链接，拦截后做外部打开的处理
     if (![self.host isEqualToString:host]) {
         // TODO: 在应用外部或其他 VC 中打开这个请求
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL host:self.host];
-        [self.navigationController pushViewController:viewController animated:YES];
-        return nil;
         
-        return [[WKWebView alloc] initWithFrame:self.view.bounds configuration:configuration];
+        SHMWebView *shmWebview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
+        shmWebview.host = self.host;
+        shmWebview.url = navigationAction.request.URL;
+        shmWebview.configuration = configuration;
+        WKWebView *wkWebView = [shmWebview createAndSetWebView];
+        
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithWebView:shmWebview];
+        [self.navigationController pushViewController:viewController animated:YES];
+        return wkWebView;
     }
     
     if ([SHMWebView isFileURL:navigationAction.request.URL]) {
         // TODO: 二级页面，需要新开 VC 打开这个请求
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL host:self.host];
-        [self.navigationController pushViewController:viewController animated:YES];
-        return nil;
         
-        return [[WKWebView alloc] initWithFrame:self.view.bounds configuration:configuration];
+        SHMWebView *shmWebview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
+        shmWebview.host = self.host;
+        shmWebview.url = navigationAction.request.URL;
+        shmWebview.configuration = configuration;
+        WKWebView *wkWebView = [shmWebview createAndSetWebView];
+        
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithWebView:shmWebview];
+        [self.navigationController pushViewController:viewController animated:YES];
+        return wkWebView;
     }
     
     // 其他请求直接在当前页面打开
@@ -207,9 +209,9 @@
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 在应用外部或其他 VC 中打开这个请求
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL host:self.host];
+            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL
+                                                                                        host:self.host];
             [self.navigationController pushViewController:viewController animated:YES];
-            
             return;
         }
         
@@ -218,7 +220,8 @@
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 二级页面，需要新开 VC 打开这个请求
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL host:self.host];
+            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL
+                                                                                        host:self.host];
             [self.navigationController pushViewController:viewController animated:YES];
             return;
         }

@@ -39,26 +39,29 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     if (self) {
         _supportedMethods = @[SHMWVContextMethodSetNavigatorTitle, SHMWVContextMethodSetNavigatorBack, SHMWVContextMethodSetNavigatorButtons];
         _buttonScripts = [NSMutableDictionary dictionary];
+        _UIDelegate = self;
+        _navigationDelegate = self;
     }
     return self;
 }
 
 - (void)didMoveToWindow {
-    if (self.window && !self.webview) {
-        self.webview = [self createWebView];
-        // 禁止回弹
-        self.webview.scrollView.bounces = NO;
-        
-        // 开启 JS 拉起键盘
-        [self disallowKeyboardDisplayRequiresUserAction];
-        
-        // 设置各类 delegate
-        self.webview.UIDelegate = self;
-        self.webview.navigationDelegate = self;
-        
-        self.webview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-        [self addSubview:self.webview];
-        [self loadUrl];
+    if (self.window) {
+        if (!self.webview) {
+            [self createAndSetWebView];
+        }
+        UIView *superView = self.webview.superview;
+        if (superView != self) {
+            // self.webview 父 View 不存在或者不是当前 View
+            [self.webview removeFromSuperview];
+            self.webview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+            [self addSubview:self.webview];
+            
+            // didMoveToWindow 会触发多次，所以只在加载到父 View 时才加载 url
+            if (self.url) {
+                [self.webview loadRequest:[NSURLRequest requestWithURL:self.url]];
+            }
+        }
     }
 }
 
@@ -72,6 +75,12 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 }
 
 #pragma mark - Public
+
+- (nonnull WKWebView *)createAndSetWebView {
+    WKWebView *webview = [self createWebView];
+    self.webview = webview;
+    return webview;
+}
 
 - (void)goBackWithCallback:(void (^__nullable)(BOOL nativeGoBack))callback {
     if (!self.goBackScript) {
@@ -93,8 +102,8 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     }];
 }
 
-- (void)clickButtonWithType:(nonnull NSString *)type payload:(nonnull NSString *)payload {
-    NSString *key = [self getButonKeyWithType:type payload:payload];
+- (void)clickButtonWithNavigatorButton:(nonnull SHMWebViewNavigatorButton *)navigatorButton {
+    NSString *key = [self getButonKeyWithType:navigatorButton.type payload:navigatorButton.payload];
     NSString *script = self.buttonScripts[key];
     if (script) {
         [self.webview evaluateJavaScript:script completionHandler:^(id _Nullable result, NSError * _Nullable error) {
@@ -127,13 +136,25 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 
 #pragma mark - Setup WebView
 
-- (WKWebView *)createWebView {
-    WKWebViewConfiguration *config = [self createConfig];
-    return [[WKWebView alloc] initWithFrame:self.bounds configuration:config];
+- (nonnull WKWebView *)createWebView {
+    WKWebViewConfiguration *configuration = [self createConfig];
+    WKWebView *webview = [[WKWebView alloc] initWithFrame:self.bounds configuration:configuration];
+    
+    // 禁止回弹
+    webview.scrollView.bounces = NO;
+    
+    // 开启 JS 拉起键盘
+    [self disallowKeyboardDisplayRequiresUserAction:webview];
+    
+    // 设置各类 delegate
+    webview.UIDelegate = self.UIDelegate;
+    webview.navigationDelegate = self.navigationDelegate;
+    
+    return webview;
 }
 
 - (WKWebViewConfiguration *)createConfig {
-    WKWebViewConfiguration *config = [[WKWebViewConfiguration alloc] init];
+    WKWebViewConfiguration *config = self.configuration ?: [[WKWebViewConfiguration alloc] init];
     
     // 设置 userAgent
     // 根据实际情况填充 lang 和 dir 字段
@@ -178,7 +199,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
             NSString *title = args[0];
             // title 为需要设置的导航标题
             NSLog(@"SHMWebView: userController: `%@` called with title: %@", method, title);
-            [self.shmWebViewDelegate webview:self setNavigatorTitle:title];
+            [self.shmWebViewDelegate webview:self setNavigatorTitle:[title isKindOfClass:[NSNull class]] ? nil : title];
         } else if ([SHMWVContextMethodSetNavigatorBack isEqualToString:method]) {
             NSArray<NSString *> *args = [body objectForKey:@"args"];
             self.goBackScript = args[0];
@@ -187,7 +208,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
         } else if ([SHMWVContextMethodSetNavigatorButtons isEqualToString:method]) {
             NSArray<NSArray<NSDictionary *> *> *args = [body objectForKey:@"args"];
             NSArray<NSDictionary *> *buttons = args[0];
-            
+            NSMutableArray<SHMWebViewNavigatorButton *> *navigatorButtons = [NSMutableArray array];
             for (NSDictionary *button in buttons) {
                 NSString *type = [button valueForKey:@"type"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n type: %@", method, type);
@@ -195,13 +216,22 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
                 NSString *payload = [button valueForKey:@"payload"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n payload: %@", method, payload);
                 
+                if (!type || [type isKindOfClass:[NSNull class]] || !payload || [payload isKindOfClass:[NSNull class]]) {
+                    continue;
+                }
+                
                 NSString *callback = [button valueForKey:@"callback"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n callback: %@", method, callback);
                 
                 NSString *key = [self getButonKeyWithType:type payload:payload];
                 [self.buttonScripts setObject:callback forKey:key];
-                [self.shmWebViewDelegate webview:self setNavigatorButtonWithType:type payload:payload];
+                
+                SHMWebViewNavigatorButton *navigatorButton = [SHMWebViewNavigatorButton new];
+                navigatorButton.type = type;
+                navigatorButton.payload = payload;
+                [navigatorButtons addObject:navigatorButton];
             }
+            [self.shmWebViewDelegate webview:self setNavigatorButtons:navigatorButtons];
         } else {
             NSLog(@"SHMWebView: userController: unexpected method `%@` called.", method);
             // 不应走到这里的逻辑里
@@ -310,23 +340,27 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 
 - (void)setUrl:(NSURL *)url {
     _url = url;
-    [self loadUrl];
-}
-
-#pragma mark - Private
-
-- (void)loadUrl {
-    if (self.webview && self.url) {
-        [self.webview loadRequest:[NSURLRequest requestWithURL:self.url]];
+    if (_webview && _url) {
+        [_webview loadRequest:[NSURLRequest requestWithURL:_url]];
     }
 }
 
+- (void)setUIDelegate:(id<WKUIDelegate>)UIDelegate {
+    _UIDelegate = UIDelegate;
+    self.webview.UIDelegate = UIDelegate;
+}
+
+- (void)setNavigationDelegate:(id<WKNavigationDelegate>)navigationDelegate {
+    _navigationDelegate = navigationDelegate;
+    self.webview.navigationDelegate = navigationDelegate;
+}
+
 #if !TARGET_OS_OSX
--(void)disallowKeyboardDisplayRequiresUserAction
+-(void)disallowKeyboardDisplayRequiresUserAction:(WKWebView *)webview
 {
     UIView* subview;
 
-    for (UIView* view in self.webview.scrollView.subviews) {
+    for (UIView* view in webview.scrollView.subviews) {
         if([[view.class description] hasPrefix:@"WK"])
             subview = view;
     }

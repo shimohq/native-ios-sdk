@@ -7,16 +7,20 @@
 //
 
 #import <UIKit/UIKit.h>
+#import <WebKit/WebKit.h>
+
+#import "SHMWebView.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
 @interface SHMWebViewController : UIViewController
 
-@property (nonnull, nonatomic, strong, readonly) NSURL *url;
-@property (nonnull, nonatomic, strong, readonly) NSString *host;
+@property (nullable, nonatomic, strong, readonly) NSURL *url;
+@property (nullable, nonatomic, strong, readonly) NSString *host;
+@property (nullable, nonatomic, strong, readonly) SHMWebView *webview;
 
-- (instancetype)initWithUrl:(nonnull NSURL *)url;
-- (instancetype)initWithUrl:(nonnull NSURL *)url host:(NSString *)host;
+- (instancetype)initWithWebView:(SHMWebView *)webview;
+- (instancetype)initWithUrl:(NSURL *)url host:(NSString *)host;
 
 @end
 

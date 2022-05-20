@@ -16,6 +16,7 @@
 		2867A5072834E3AA0046EADF /* SHMWindow.m in Sources */ = {isa = PBXBuildFile; fileRef = 2867A5062834E3AA0046EADF /* SHMWindow.m */; };
 		2867A50A2834E5200046EADF /* SHMViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2867A5092834E5200046EADF /* SHMViewController.m */; };
 		2867A50D2834E5960046EADF /* SHMWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2867A50C2834E5960046EADF /* SHMWebViewController.m */; };
+		28FD7502283770B800DA16DC /* SHMWebViewNavigatorButton.m in Sources */ = {isa = PBXBuildFile; fileRef = 28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */; };
 		7FF9E1AA2836377000571541 /* SHMWebView.m in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9E1A92836377000571541 /* SHMWebView.m */; };
 /* End PBXBuildFile section */
 
@@ -35,6 +36,8 @@
 		2867A5092834E5200046EADF /* SHMViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMViewController.m; sourceTree = "<group>"; };
 		2867A50B2834E5960046EADF /* SHMWebViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHMWebViewController.h; sourceTree = "<group>"; };
 		2867A50C2834E5960046EADF /* SHMWebViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMWebViewController.m; sourceTree = "<group>"; };
+		28FD7500283770B800DA16DC /* SHMWebViewNavigatorButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHMWebViewNavigatorButton.h; sourceTree = "<group>"; };
+		28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMWebViewNavigatorButton.m; sourceTree = "<group>"; };
 		6ABEF1D619DC86BB7534BBE8 /* Pods-NativeSDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NativeSDK.release.xcconfig"; path = "Target Support Files/Pods-NativeSDK/Pods-NativeSDK.release.xcconfig"; sourceTree = "<group>"; };
 		7FF9E1A82836377000571541 /* SHMWebView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHMWebView.h; sourceTree = "<group>"; };
 		7FF9E1A92836377000571541 /* SHMWebView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHMWebView.m; sourceTree = "<group>"; };
@@ -83,16 +86,26 @@
 				2867A4FB2834D9380046EADF /* main.m */,
 				2867A4EC2834D9360046EADF /* SceneDelegate.h */,
 				2867A4ED2834D9360046EADF /* SceneDelegate.m */,
-				2867A5052834E3AA0046EADF /* SHMWindow.h */,
-				2867A5062834E3AA0046EADF /* SHMWindow.m */,
 				2867A5082834E5200046EADF /* SHMViewController.h */,
 				2867A5092834E5200046EADF /* SHMViewController.m */,
 				2867A50B2834E5960046EADF /* SHMWebViewController.h */,
 				2867A50C2834E5960046EADF /* SHMWebViewController.m */,
-				7FF9E1A82836377000571541 /* SHMWebView.h */,
-				7FF9E1A92836377000571541 /* SHMWebView.m */,
+				2867A5052834E3AA0046EADF /* SHMWindow.h */,
+				2867A5062834E3AA0046EADF /* SHMWindow.m */,
+				28FD74FF2837709B00DA16DC /* SHMWebView */,
 			);
 			path = NativeSDK;
+			sourceTree = "<group>";
+		};
+		28FD74FF2837709B00DA16DC /* SHMWebView */ = {
+			isa = PBXGroup;
+			children = (
+				7FF9E1A82836377000571541 /* SHMWebView.h */,
+				7FF9E1A92836377000571541 /* SHMWebView.m */,
+				28FD7500283770B800DA16DC /* SHMWebViewNavigatorButton.h */,
+				28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */,
+			);
+			path = SHMWebView;
 			sourceTree = "<group>";
 		};
 		58D92E843CD07363C4D31BD2 /* Frameworks */ = {
@@ -233,6 +246,7 @@
 				7FF9E1AA2836377000571541 /* SHMWebView.m in Sources */,
 				2867A4FC2834D9380046EADF /* main.m in Sources */,
 				2867A50D2834E5960046EADF /* SHMWebViewController.m in Sources */,
+				28FD7502283770B800DA16DC /* SHMWebViewNavigatorButton.m in Sources */,
 				2867A4EE2834D9360046EADF /* SceneDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
