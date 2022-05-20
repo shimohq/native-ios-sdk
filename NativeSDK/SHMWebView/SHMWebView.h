@@ -35,7 +35,13 @@
 @property (nonnull, nonatomic, copy) NSString *host;
 
 /// WebView 配置
+/// 一般情况不需要，会自动创建新的
 @property (nullable, nonatomic, copy) WKWebViewConfiguration *configuration;
+
+/// WKWebView 默认 user agent 添加后缀
+/// Default: @"SMWV/1.35  (HWMT-730; lang: zh-CN; dir: ltr)"
+/// 根据实际情况填充 lang 和 dir 字段 
+@property (nullable, nonatomic, copy) NSString *applicationNameForUserAgent;
 
 /// userContentController 的名称
 /// Default: _SMWV-UCC_
@@ -49,9 +55,11 @@
 @property (nullable, nonatomic, weak) id<SHMWebViewDelegate> shmWebViewDelegate;
 
 /// WKWebView 的 WKNavigationDelegate
+/// 拦截跳转时用
 @property (nullable, nonatomic, weak) id <WKNavigationDelegate> navigationDelegate;
 
 /// WKWebView 的 WKUIDelegate
+/// 自定义 alert、confirm、promit 和拦截新窗口打开时用
 @property (nullable, nonatomic, weak) id <WKUIDelegate> UIDelegate;
 
 /// didMoveToWindow 的时候自动创建

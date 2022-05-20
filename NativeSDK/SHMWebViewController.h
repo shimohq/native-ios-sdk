@@ -16,7 +16,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface SHMWebViewController : UIViewController
 
 @property (nullable, nonatomic, strong, readonly) NSURL *url;
-@property (nullable, nonatomic, strong, readonly) NSString *host;
+@property (nullable, nonatomic, copy, readonly) NSString *host;
 @property (nullable, nonatomic, strong, readonly) SHMWebView *webview;
 
 - (instancetype)initWithWebView:(SHMWebView *)webview;

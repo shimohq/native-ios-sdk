@@ -13,7 +13,9 @@
 @interface SHMWebViewController () <SHMWebViewDelegate, WKUIDelegate, WKNavigationDelegate>
 
 @property (nullable, nonatomic, strong) NSURL *url;
-@property (nullable, nonatomic, strong) NSString *host;
+@property (nullable, nonatomic, copy) NSString *host;
+@property (nullable, nonatomic, copy) NSString *applicationNameForUserAgent;
+
 @property (nullable, nonatomic, strong) SHMWebView *webview;
 
 @property (nonatomic, strong) SHMWebViewNavigatorButton *shareNavigatorButton;
@@ -23,8 +25,16 @@
 
 @implementation SHMWebViewController
 
-- (instancetype)initWithWebView:(SHMWebView *)webview {
+- (instancetype)init {
     self = [super init];
+    if (self) {
+        _applicationNameForUserAgent = @"SMWV/1.35  (HWMT-730; lang: zh-CN; dir: ltr)";
+    }
+    return self;
+}
+
+- (instancetype)initWithWebView:(SHMWebView *)webview {
+    self = [self init];
     if (self) {
         _webview = webview;
     }
@@ -32,7 +42,7 @@
 }
 
 - (instancetype)initWithUrl:(NSURL *)url host:(NSString *)host {
-    self = [super init];
+    self = [self init];
     if (self) {
         _url = url;
         _host = host;
@@ -53,6 +63,7 @@
         self.webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
         self.webview.host = self.host;
         self.webview.url = self.url;
+        self.webview.applicationNameForUserAgent = self.applicationNameForUserAgent;
     }
     
     self.webview.shmWebViewDelegate = self;
@@ -163,6 +174,7 @@
         
         SHMWebView *shmWebview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
         shmWebview.host = self.host;
+        shmWebview.applicationNameForUserAgent = self.applicationNameForUserAgent;
         shmWebview.url = navigationAction.request.URL;
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
@@ -177,6 +189,7 @@
         
         SHMWebView *shmWebview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
         shmWebview.host = self.host;
+        shmWebview.applicationNameForUserAgent = self.applicationNameForUserAgent;
         shmWebview.url = navigationAction.request.URL;
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
