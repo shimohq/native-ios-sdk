@@ -270,6 +270,10 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     decisionHandler(WKNavigationActionPolicyAllow);
 }
 
+- (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(null_unspecified WKNavigation *)navigationAction {
+    // TODO: 在跳转开始时需要重置 goBack title buttons 状态
+}
+
 #pragma mark - WKUIDelegate
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
