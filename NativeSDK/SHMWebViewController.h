@@ -13,8 +13,10 @@ NS_ASSUME_NONNULL_BEGIN
 @interface SHMWebViewController : UIViewController
 
 @property (nonnull, nonatomic, strong, readonly) NSURL *url;
+@property (nonnull, nonatomic, strong, readonly) NSString *host;
 
 - (instancetype)initWithUrl:(nonnull NSURL *)url;
+- (instancetype)initWithUrl:(nonnull NSURL *)url host:(NSString *)host;
 
 @end
 

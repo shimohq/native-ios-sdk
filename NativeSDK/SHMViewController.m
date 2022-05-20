@@ -12,7 +12,14 @@
 
 #import "SHMWebViewController.h"
 
+
+NSString *const SHMDataTitleKey = @"title";
+NSString *const SHMDataUrlKey = @"url";
+NSString *const SHMDataHostKey = @"host";
+
 @interface SHMViewController () <UITableViewDataSource, UITableViewDelegate>
+
+@property (nonatomic, strong) NSArray<NSDictionary *> *datas;
 
 @end
 
@@ -22,6 +29,19 @@
     [super viewDidLoad];
     
     self.title = @"石墨 iOS SDK";
+    
+    self.datas = @[
+        @{
+            SHMDataTitleKey: @"Demo",
+            SHMDataUrlKey: @"https://shimo-app-test.oss-cn-beijing.aliyuncs.com/resource/native-sdk/index.html",
+            SHMDataHostKey: @"shimo.im"
+        },
+        @{
+            SHMDataTitleKey: @"首页",
+            SHMDataUrlKey: @"https://shimo.im/recent",
+            SHMDataHostKey: @"shimo.im"
+        }
+    ];
     
     UITableView *tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStylePlain];
     tableView.delegate = self;
@@ -40,30 +60,24 @@
 
 
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section {
-    return 2;
+    return self.datas.count;
 }
 
 - (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath {
     UITableViewCell *cell = [[UITableViewCell alloc] initWithStyle:UITableViewCellStyleValue1 reuseIdentifier:@"SHMNativeSDK"];
-    
-    if (indexPath.row == 0) {
-        cell.textLabel.text = @"demo";
-        cell.detailTextLabel.text = @"https://shimo-app-test.oss-cn-beijing.aliyuncs.com/resource/native-sdk/index.html";
-    } else {
-        cell.textLabel.text = @"首页";
-        cell.detailTextLabel.text = @"https://shimo.im/recent";
-    }
-
-    
+    NSDictionary *data = self.datas[indexPath.row];
+    cell.textLabel.text = data[SHMDataTitleKey];
+    cell.detailTextLabel.text = data[SHMDataUrlKey];
     return cell;
 }
 
 #pragma mark - UITableViewDelegate
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
-    UITableViewCell *cell = [tableView cellForRowAtIndexPath:indexPath];
-    NSString *url = cell.detailTextLabel.text ?: @"";
-    SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl: [NSURL URLWithString:url]];
+    NSDictionary *data = self.datas[indexPath.row];
+    
+    SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:[NSURL URLWithString:data[SHMDataUrlKey]]
+                                                                                host:data[SHMDataHostKey]];
     [self.navigationController pushViewController:viewController animated:YES];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
