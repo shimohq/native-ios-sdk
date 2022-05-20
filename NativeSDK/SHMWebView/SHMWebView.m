@@ -102,7 +102,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     }];
 }
 
-- (void)clickButtonWithNavigatorButton:(nonnull SHMWebViewNavigatorButton *)navigatorButton {
+- (void)clickNavigatorButton:(nonnull SHMWebViewNavigatorButton *)navigatorButton {
     NSString *key = [self getButonKeyWithType:navigatorButton.type payload:navigatorButton.payload];
     NSString *script = self.buttonScripts[key];
     if (script) {

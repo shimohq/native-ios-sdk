@@ -69,7 +69,7 @@
 
 /// 导航条按钮点击
 /// @param navigatorButton 导航按钮数据
-- (void)clickButtonWithNavigatorButton:(nonnull SHMWebViewNavigatorButton *)navigatorButton;
+- (void)clickNavigatorButton:(nonnull SHMWebViewNavigatorButton *)navigatorButton;
 
 /// 是否为石墨文件链接
 /// @param url 链接

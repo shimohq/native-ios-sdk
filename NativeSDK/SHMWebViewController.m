@@ -85,11 +85,11 @@
 }
 
 - (void)onShare {
-    [self.webview clickButtonWithNavigatorButton:self.shareNavigatorButton];
+    [self.webview clickNavigatorButton:self.shareNavigatorButton];
 }
 
 - (void)onMenu {
-    [self.webview clickButtonWithNavigatorButton:self.menuNavigatorButton];
+    [self.webview clickNavigatorButton:self.menuNavigatorButton];
 }
 
 #pragma mark - SHMWebViewDelegate
