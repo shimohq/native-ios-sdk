@@ -10,23 +10,33 @@
 #import <Foundation/Foundation.h>
 #import <objc/runtime.h>
 
-// 设置导航文字标题
+/// 设置导航文字标题
 NSString *const SHMWVContextMethodSetNavigatorTitle = @"setNavigatorTitle";
 
-// 设置导航返回按钮
+/// 设置导航返回按钮
 NSString *const SHMWVContextMethodSetNavigatorBack = @"setNavigatorBack";
 
-// 设置导航各类功能按钮
+/// 设置导航各类功能按钮
 NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 
 @interface SHMWebView () <WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler>
 
-/// 原生点击返回的时候先执行这段 JS，根据返回值判断是否退出 WebView
-@property (nonatomic, strong) NSString *goBackScript;
-/// 导航条按钮点击时调用的 JS
-@property (nonatomic, strong) NSMutableDictionary *buttonScripts;
+/// userContentController 的名称
+/// 值: _SMWV-UCC_
+@property (nonnull, nonatomic, copy) NSString *userContentControllerName;
 
-@property (nonatomic, strong) WKWebView *webview;
+/// 支持的 native 方法
+/// Default: @[@"setNavigatorTitle", @"setNavigatorBack", @"setNavigatorButtons"]
+@property (nonnull, nonatomic, copy) NSArray *supportedMethods;
+
+/// 原生点击返回的时候先执行这段 JS，根据返回值判断是否退出 WebView
+@property (nullable, nonatomic, copy) NSString *goBackScript;
+
+/// 导航条按钮点击时调用的 JS
+@property (nonnull, nonatomic, strong) NSMutableDictionary *buttonScripts;
+
+@property (nonatomic, assign) BOOL backButtonEnable;
+@property (nullable, nonatomic, strong) WKWebView *webview;
 
 @end
 
@@ -37,11 +47,12 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
+        _backButtonEnable = NO;
+        _userContentControllerName = @"_SMWV-UCC_";
         _applicationNameForUserAgent = [NSString stringWithFormat:@"SMWV/1.35 (HWMT-730; lang: %@; dir: %@)", @"zh-CN", @"ltr"];
         _supportedMethods = @[SHMWVContextMethodSetNavigatorTitle, SHMWVContextMethodSetNavigatorBack, SHMWVContextMethodSetNavigatorButtons];
         _buttonScripts = [NSMutableDictionary dictionary];
         _UIDelegate = self;
-        _navigationDelegate = self;
     }
     return self;
 }
@@ -78,9 +89,8 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 #pragma mark - Public
 
 - (nonnull WKWebView *)createAndSetWebView {
-    WKWebView *webview = [self createWebView];
-    self.webview = webview;
-    return webview;
+    self.webview = [self createWebView];
+    return self.webview;
 }
 
 - (void)goBackWithCallback:(void (^__nullable)(BOOL nativeGoBack))callback {
@@ -91,11 +101,9 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     }
     [self.webview evaluateJavaScript:self.goBackScript completionHandler:^(id _Nullable result, NSError * _Nullable error) {
         if (result) {
-            NSLog(@"SHMWebView: goBack return 'true' goBackScript: %@", self.goBackScript);
             // 这里什么都不用做，js 已经处理了这个点击回调
             callback(false);
         } else {
-            NSLog(@"SHMWebView: goBack return 'false' goBackScript: %@", self.goBackScript);
             // 如果这里 result 为 false，需要执行 native 端的返回逻辑
             // 执行 native 的返回逻辑
             callback(true);
@@ -149,7 +157,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     
     // 设置各类 delegate
     webview.UIDelegate = self.UIDelegate;
-    webview.navigationDelegate = self.navigationDelegate;
+    webview.navigationDelegate = self;
     
     return webview;
 }
@@ -196,15 +204,19 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
         
         if ([SHMWVContextMethodSetNavigatorTitle isEqualToString:method]) {
             NSArray<NSString *> *args = [body objectForKey:@"args"];
-            NSString *title = args[0];
             // title 为需要设置的导航标题
-            NSLog(@"SHMWebView: userController: `%@` called with title: %@", method, title);
-            [self.shmWebViewDelegate webview:self setNavigatorTitle:[title isKindOfClass:[NSNull class]] ? nil : title];
+            NSString *title = args[0];
+            NSLog(@"SHMWebView: userController: `%@` called with title: %@ self.webview.title: %@", method, title, self.webview.title);
+            title = [[self class] isNotNil:title] ? title : nil;
+            [self.delegate webview:self setNavigatorTitle: title ?: self.webview.title];
         } else if ([SHMWVContextMethodSetNavigatorBack isEqualToString:method]) {
             NSArray<NSString *> *args = [body objectForKey:@"args"];
-            self.goBackScript = args[0];
             // callback 为 native 导航返回按钮点击时需要执行的脚本
+            NSString *goBackScript = args[0];
             NSLog(@"SHMWebView: userController: `%@` called with goBackScript: %@", method, self.goBackScript);
+            goBackScript = [[self class] isNotEmpty:goBackScript] ? goBackScript : nil;
+            self.goBackScript = goBackScript;
+            [self setBackButtonEnable:self.goBackScript || self.webview.canGoBack];
         } else if ([SHMWVContextMethodSetNavigatorButtons isEqualToString:method]) {
             NSArray<NSArray<NSDictionary *> *> *args = [body objectForKey:@"args"];
             NSArray<NSDictionary *> *buttons = args[0];
@@ -216,7 +228,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
                 NSString *payload = [button valueForKey:@"payload"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n payload: %@", method, payload);
                 
-                if (!type || [type isKindOfClass:[NSNull class]] || !payload || [payload isKindOfClass:[NSNull class]]) {
+                if ([[self class] isNil:type] || [[self class] isNil:payload]) {
                     continue;
                 }
                 
@@ -231,7 +243,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
                 navigatorButton.payload = payload;
                 [navigatorButtons addObject:navigatorButton];
             }
-            [self.shmWebViewDelegate webview:self setNavigatorButtons:navigatorButtons];
+            [self.delegate webview:self setNavigatorButtons:navigatorButtons];
         } else {
             NSLog(@"SHMWebView: userController: unexpected method `%@` called.", method);
             // 不应走到这里的逻辑里
@@ -241,33 +253,123 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 
 #pragma mark - WKNavigationDelegate
 
-- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
-    // 只有顶层 frame 发生导航才处理，页面内部嵌套的 iframe 导航不管
-    if (navigationAction.targetFrame.isMainFrame) {
-        NSLog(@"SHMWebView: navigate: %@", navigationAction.request.URL);
-        
-        // 加载当前 WebView 初始页面放行
-        if ([webView.URL isEqual:navigationAction.request.URL]) {
-            decisionHandler(WKNavigationActionPolicyAllow);
-            return;
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler WK_SWIFT_ASYNC(3) {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationAction:decisionHandler:)]) {
+        [self.navigationDelegate webView:webView decidePolicyForNavigationAction:navigationAction decisionHandler:decisionHandler];
+    } else {
+        // 只有顶层 frame 发生导航才处理，页面内部嵌套的 iframe 导航不管
+        if (navigationAction.targetFrame.isMainFrame) {
+            // 加载当前 WebView 初始页面放行
+            if ([webView.URL isEqual:navigationAction.request.URL]) {
+                decisionHandler(WKNavigationActionPolicyAllow);
+                return;
+            }
+            
+            NSString *host = navigationAction.request.URL.host;
+            // 非石墨外部链接，拦截后做外部打开的处理
+            if (![self.host isEqualToString:host]) {
+                decisionHandler(WKNavigationActionPolicyCancel);
+                return;
+            }
+            
+            if ([self.class isFileURL:navigationAction.request.URL]) {
+                decisionHandler(WKNavigationActionPolicyCancel);
+                return;
+            }
         }
-        
-        NSString *host = navigationAction.request.URL.host;
-        // 非石墨外部链接，拦截后做外部打开的处理
-        if (![self.host isEqualToString:host]) {
-            decisionHandler(WKNavigationActionPolicyCancel);
-            return;
-        }
-        
-        if ([self.class isFileURL:navigationAction.request.URL]) {
-            decisionHandler(WKNavigationActionPolicyCancel);
-            NSLog(@"SHMWebView: navigate to file: %@", navigationAction.request.URL);
-            return;
-        }
+        // 其他情况放行
+        decisionHandler(WKNavigationActionPolicyAllow);
     }
+}
+
+//- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction preferences:(WKWebpagePreferences *)preferences decisionHandler:(void (^)(WKNavigationActionPolicy, WKWebpagePreferences *))decisionHandler WK_SWIFT_ASYNC(4) API_AVAILABLE(macos(10.15), ios(13.0)) {
+//    if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationAction:preferences:decisionHandler:)]) {
+//        [self.navigationDelegate webView:webView decidePolicyForNavigationAction:navigationAction preferences:preferences decisionHandler:decisionHandler];
+//    }
+//}
+
+//- (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler WK_SWIFT_ASYNC(3) {
+//    if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationResponse:decisionHandler:)]) {
+//        [self.navigationDelegate webView:webView decidePolicyForNavigationResponse:navigationResponse decisionHandler:decisionHandler];
+//    }
+//}
+
+- (void)webView:(WKWebView *)webView didStartProvisionalNavigation:(null_unspecified WKNavigation *)navigation {
+    // 清除 title
+    [self.delegate webview:self setNavigatorTitle:nil];
+    // 清除返回脚本
+    self.goBackScript = nil;
+    // 更新是否显示返回按钮
+    [self setBackButtonEnable:self.webview.canGoBack];
+    // 清除导航条按钮
+    [self.buttonScripts removeAllObjects];
+    [self.delegate webview:self setNavigatorButtons:@[]];
     
-    // 其他情况放行
-    decisionHandler(WKNavigationActionPolicyAllow);
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:didStartProvisionalNavigation:)]) {
+        [self.navigationDelegate webView:webView didStartProvisionalNavigation:navigation];
+    }
+}
+
+- (void)webView:(WKWebView *)webView didReceiveServerRedirectForProvisionalNavigation:(null_unspecified WKNavigation *)navigation {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:didReceiveServerRedirectForProvisionalNavigation:)]) {
+        [self.navigationDelegate webView:webView didReceiveServerRedirectForProvisionalNavigation:navigation];
+    }
+}
+
+- (void)webView:(WKWebView *)webView didFailProvisionalNavigation:(null_unspecified WKNavigation *)navigation withError:(NSError *)error {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:didFailProvisionalNavigation:withError:)]) {
+        [self.navigationDelegate webView:webView didFailProvisionalNavigation:navigation withError:error];
+    }
+}
+
+- (void)webView:(WKWebView *)webView didCommitNavigation:(null_unspecified WKNavigation *)navigation {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:didCommitNavigation:)]) {
+        [self.navigationDelegate webView:webView didCommitNavigation:navigation];
+    }
+}
+
+- (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation {
+    [self setBackButtonEnable:self.goBackScript || self.webview.canGoBack];
+    [self.delegate webview:self setNavigatorTitle:webView.title];
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:didFinishNavigation:)]) {
+        [self.navigationDelegate webView:webView didFinishNavigation:navigation];
+    }
+}
+
+- (void)webView:(WKWebView *)webView didFailNavigation:(null_unspecified WKNavigation *)navigation withError:(NSError *)error {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:didFailNavigation:withError:)]) {
+        [self.navigationDelegate webView:webView didFailNavigation:navigation withError:error];
+    }
+}
+
+//- (void)webView:(WKWebView *)webView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler WK_SWIFT_ASYNC_NAME(webView(_:respondTo:)) {
+//    if ([self.navigationDelegate respondsToSelector:@selector(webView:didReceiveAuthenticationChallenge:completionHandler:)]) {
+//        [self.navigationDelegate webView:webView didReceiveAuthenticationChallenge:challenge completionHandler:completionHandler];
+//    }
+//}
+
+- (void)webViewWebContentProcessDidTerminate:(WKWebView *)webView API_AVAILABLE(macos(10.11), ios(9.0)) {
+    if ([self.navigationDelegate respondsToSelector:@selector(webViewWebContentProcessDidTerminate:)]) {
+        [self.navigationDelegate webViewWebContentProcessDidTerminate:webView];
+    }
+}
+
+//- (void)webView:(WKWebView *)webView authenticationChallenge:(NSURLAuthenticationChallenge *)challenge shouldAllowDeprecatedTLS:(void (^)(BOOL))decisionHandler WK_SWIFT_ASYNC_NAME(webView(_:shouldAllowDeprecatedTLSFor:)) WK_SWIFT_ASYNC(3) API_AVAILABLE(macos(11.0), ios(14.0)) {
+//    if ([self.navigationDelegate respondsToSelector:@selector(webView:authenticationChallenge:shouldAllowDeprecatedTLS:)]) {
+//        [self.navigationDelegate webView:webView authenticationChallenge:challenge shouldAllowDeprecatedTLS:decisionHandler];
+//    }
+//}
+
+- (void)webView:(WKWebView *)webView navigationAction:(WKNavigationAction *)navigationAction didBecomeDownload:(WKDownload *)download API_AVAILABLE(macos(11.3), ios(14.5)) {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:navigationAction:didBecomeDownload:)]) {
+        [self.navigationDelegate webView:webView navigationAction:navigationAction didBecomeDownload:download];
+    }
+}
+
+- (void)webView:(WKWebView *)webView navigationResponse:(WKNavigationResponse *)navigationResponse didBecomeDownload:(WKDownload *)download API_AVAILABLE(macos(11.3), ios(14.5)) {
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:navigationResponse:didBecomeDownload:)]) {
+        [self.navigationDelegate webView:webView navigationResponse:navigationResponse didBecomeDownload:download];
+    }
 }
 
 #pragma mark - WKUIDelegate
@@ -312,7 +414,6 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 }
 
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
-    NSLog(@"SHMWebView: open window: %@", navigationAction.request.URL);
     NSString *host = navigationAction.request.URL.host;
     // 非石墨外部链接，拦截后做外部打开的处理
     if (![self.host isEqualToString:host]) {
@@ -327,15 +428,6 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     return nil;
 }
 
-#pragma mark - Getter
-
-- (NSString *)userContentControllerName {
-    if (!_userContentControllerName) {
-        _userContentControllerName = @"_SMWV-UCC_";
-    }
-    return _userContentControllerName;
-}
-
 #pragma mark - Setter
 
 - (void)setUrl:(NSURL *)url {
@@ -345,15 +437,22 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     }
 }
 
+- (void)setBackButtonEnable:(BOOL)backButtonEnable {
+    if (_backButtonEnable == backButtonEnable) {
+        return;
+    }
+    _backButtonEnable = backButtonEnable;
+    if ([self.delegate respondsToSelector:@selector(webview:setBackButtonEnable:)]) {
+        [self.delegate webview:self setBackButtonEnable:_backButtonEnable];
+    }
+}
+
 - (void)setUIDelegate:(id<WKUIDelegate>)UIDelegate {
     _UIDelegate = UIDelegate;
     self.webview.UIDelegate = UIDelegate;
 }
 
-- (void)setNavigationDelegate:(id<WKNavigationDelegate>)navigationDelegate {
-    _navigationDelegate = navigationDelegate;
-    self.webview.navigationDelegate = navigationDelegate;
-}
+#pragma mark - Private
 
 #if !TARGET_OS_OSX
 -(void)disallowKeyboardDisplayRequiresUserAction:(WKWebView *)webview
@@ -429,6 +528,22 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 
 - (NSString *)getButonKeyWithType:(nonnull NSString *)type payload:(nonnull NSString *)payload {
     return [NSString stringWithFormat:@"type:%@_payload:%@", type, payload];
+}
+
++ (BOOL)isEmpty:(nullable NSString *)string {
+    return [self isNil:string] || [string isEqualToString:@""];
+}
+
++ (BOOL)isNotEmpty:(nullable NSString *)string {
+    return ![self isEmpty:string];
+}
+
++ (BOOL)isNil:(nullable id)object {
+    return ![self isNotNil:object];
+}
+
++ (BOOL)isNotNil:(nullable id)object {
+    return object && ![object isKindOfClass:[NSNull class]];
 }
 
 @end
