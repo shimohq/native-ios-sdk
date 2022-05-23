@@ -274,7 +274,7 @@ NSString *const SHMWebViewVersion = @"1.35";
             
             NSString *host = navigationAction.request.URL.host;
             // 非石墨外部链接，拦截后做外部打开的处理
-            if (![self.host isEqualToString:host]) {
+            if (self.host && ![self.host isEqualToString:host]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 return;
             }
@@ -431,7 +431,7 @@ NSString *const SHMWebViewVersion = @"1.35";
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
     NSString *host = navigationAction.request.URL.host;
     // 非石墨外部链接，拦截后做外部打开的处理
-    if (![self.host isEqualToString:host]) {
+    if (self.host && ![self.host isEqualToString:host]) {
         return [[WKWebView alloc] initWithFrame:self.bounds configuration:configuration];
     }
     

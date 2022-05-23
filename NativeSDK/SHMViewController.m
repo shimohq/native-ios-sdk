@@ -76,8 +76,9 @@ NSString *const SHMDataHostKey = @"host";
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {
     NSDictionary *data = self.datas[indexPath.row];
     
-    SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:[NSURL URLWithString:data[SHMDataUrlKey]]
-                                                                                host:data[SHMDataHostKey]];
+    SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+    viewController.url = [NSURL URLWithString:data[SHMDataUrlKey]];
+    viewController.host = data[SHMDataHostKey];
     [self.navigationController pushViewController:viewController animated:YES];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }

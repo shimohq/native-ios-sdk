@@ -7,16 +7,13 @@
 //
 
 #import "SHMWebViewController.h"
+#import "SHMOtherWebViewController.h"
 
 #import <Masonry/Masonry.h>
 
 @interface SHMWebViewController () <SHMWebViewDelegate, WKUIDelegate, WKNavigationDelegate>
 
-@property (nullable, nonatomic, strong) NSURL *url;
-@property (nullable, nonatomic, copy) NSString *host;
 @property (nullable, nonatomic, copy) NSString *appID;
-
-@property (nullable, nonatomic, strong) SHMWebView *webview;
 
 @property (nonatomic, strong) UIBarButtonItem *backNavigatorButton;
 @property (nonatomic, strong) UIBarButtonItem *closeNavigatorButton;
@@ -32,25 +29,6 @@
     self = [super init];
     if (self) {
         _appID = @"HWMT-730";
-    }
-    return self;
-}
-
-- (instancetype)initWithUrl:(nonnull NSURL *)url host:(nonnull NSString *)host {
-    self = [self init];
-    if (self) {
-        _url = url;
-        _host = host;
-    }
-    return self;
-}
-
-- (instancetype)initWithUrl:(nonnull NSURL *)url
-                       host:(nonnull NSString *)host
-                    webView:(nonnull SHMWebView *)webview {
-    self = [self initWithUrl:url host:host];
-    if (self) {
-        _webview = webview;
     }
     return self;
 }
@@ -180,18 +158,28 @@
     NSString *host = url.host;
     NSLog(@"SHMWebView: createWebViewWithConfiguration: %@", url.absoluteString);
     // 非石墨外部链接，拦截后做外部打开的处理
-    if (![self.host isEqualToString:host]) {
+    if (self.host && ![self.host isEqualToString:host]) {
         // TODO: 在应用外部或其他 VC 中打开这个请求
-        
-        SHMWebView *shmWebview = [self createWebView];
-        shmWebview.configuration = configuration;
-        WKWebView *wkWebView = [shmWebview createAndSetWebView];
-        
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url
-                                                                                    host:self.host
-                                                                                 webView:shmWebview];
-        [self.navigationController pushViewController:viewController animated:YES];
-        return wkWebView;
+        if (YES) {
+            // TODO 用非 SHMWebView 中打开外部链接
+            WKWebView *wkWebView = [[WKWebView alloc] initWithFrame:self.view.bounds configuration:configuration];
+            SHMOtherWebViewController *viewController = [[SHMOtherWebViewController alloc] init];
+            viewController.webview = wkWebView;
+            viewController.url = url;
+            [self.navigationController pushViewController:viewController animated:YES];
+            return wkWebView;
+        } else {
+            // TODO 用 SHMWebView 中打开外部链接
+            SHMWebView *shmWebview = [self createWebView];
+            shmWebview.configuration = configuration;
+            WKWebView *wkWebView = [shmWebview createAndSetWebView];
+            
+            SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+            viewController.url = url;
+            viewController.webview = shmWebview;
+            [self.navigationController pushViewController:viewController animated:YES];
+            return wkWebView;
+        }
     }
     
     if ([SHMWebView isFileURL:url]) {
@@ -201,9 +189,10 @@
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
         
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url
-                                                                                    host:self.host
-                                                                                 webView:shmWebview];
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+        viewController.host = self.host;
+        viewController.url = url;
+        viewController.webview = shmWebview;
         [self.navigationController pushViewController:viewController animated:YES];
         return wkWebView;
     }
@@ -228,21 +217,32 @@
         
         NSString *host = url.host;
         // 非石墨外部链接，拦截后做外部打开的处理
-        if (![self.host isEqualToString:host]) {
+        if (self.host && ![self.host isEqualToString:host]) {
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 在应用外部或其他 VC 中打开这个请求
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url host:self.host];
-            [self.navigationController pushViewController:viewController animated:YES];
+            if (YES) {
+                // TODO 不用 SHMWebView 打开外部链接
+                SHMOtherWebViewController *viewController = [[SHMOtherWebViewController alloc] init];
+                viewController.url = url;
+                [self.navigationController pushViewController:viewController animated:YES];
+            } else {
+                // TODO 用 SHMWebView 打开外部链接
+                SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+                viewController.url = url;
+                [self.navigationController pushViewController:viewController animated:YES];
+            }
             return;
         }
         
-        if ([SHMWebView isFileURL:navigationAction.request.URL]) {
-            NSLog(@"SHMWebView: navigate to file: %@", navigationAction.request.URL);
+        if ([SHMWebView isFileURL:url]) {
+            NSLog(@"SHMWebView: navigate to file: %@", url);
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 二级页面，需要新开 VC 打开这个请求
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url host:self.host];
+            SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+            viewController.url = url;
+            viewController.host = host;
             [self.navigationController pushViewController:viewController animated:YES];
             return;
         }
