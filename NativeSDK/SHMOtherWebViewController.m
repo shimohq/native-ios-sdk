@@ -8,6 +8,8 @@
 
 #import "SHMOtherWebViewController.h"
 
+#import <Masonry/Masonry.h>
+
 @interface SHMOtherWebViewController ()
 
 @end
@@ -17,18 +19,20 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     // Do any additional setup after loading the view.
-    if (!self.webview) {
-        self.webview = [[WKWebView alloc] initWithFrame:self.view.bounds];
+    if (self.webview) {
+        if (self.webview.superview) {
+            [self.webview removeFromSuperview];
+        }
     } else {
-        self.webview.frame = self.view.bounds;
-    }
-    self.webview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    UIView *superview = self.webview.superview;
-    if (superview) {
-        [self.webview removeFromSuperview];
+        self.webview = [[WKWebView alloc] initWithFrame:self.view.bounds];
     }
     [self.view addSubview:self.webview];
-    
+    [self.webview mas_makeConstraints:^(MASConstraintMaker *make) {
+        make.top.equalTo(self.view.mas_safeAreaLayoutGuideTop);
+        make.bottom.equalTo(self.view.mas_safeAreaLayoutGuideBottom);
+        make.left.equalTo(self.view.mas_safeAreaLayoutGuideLeft);
+        make.right.equalTo(self.view.mas_safeAreaLayoutGuideRight);
+    }];
     [self.webview loadRequest:[NSURLRequest requestWithURL:self.url]];
 }
 

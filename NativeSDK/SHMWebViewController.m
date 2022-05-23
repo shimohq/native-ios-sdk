@@ -41,7 +41,11 @@
     self.closeNavigatorButton = [[UIBarButtonItem alloc] initWithTitle:@"关闭" style:UIBarButtonItemStylePlain target:self action:@selector(onClose)];
     self.navigationItem.leftBarButtonItems = @[self.closeNavigatorButton];
     
-    if (!self.webview) {
+    if (self.webview) {
+        if (self.webview.superview) {
+            [self.webview removeFromSuperview];
+        }
+    } else {
         self.webview = [self createWebView];
     }
     self.webview.url = self.url;
