@@ -451,7 +451,7 @@ NSString *const SHMWebViewVersion = @"1.35";
 
 - (void)setUrl:(NSURL *)url {
     _url = url;
-    if (_webview && _url) {
+    if (_url && _webview && _webview.superview) {
         [_webview loadRequest:[NSURLRequest requestWithURL:_url]];
     }
 }

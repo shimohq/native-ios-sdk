@@ -65,9 +65,8 @@
     
     if (!self.webview) {
         self.webview = [self createWebView];
-        self.webview.url = self.url;
     }
-    
+    self.webview.url = self.url;
     self.webview.delegate = self;
     // TODO SHMWebView 已实现的 UIDelegate 不满足要求的时候才设置
     self.webview.UIDelegate = self;
@@ -185,11 +184,10 @@
         // TODO: 在应用外部或其他 VC 中打开这个请求
         
         SHMWebView *shmWebview = [self createWebView];
-        shmWebview.url = url;
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
         
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:shmWebview.url
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url
                                                                                     host:self.host
                                                                                  webView:shmWebview];
         [self.navigationController pushViewController:viewController animated:YES];
@@ -200,11 +198,10 @@
         // TODO: 二级页面，需要新开 VC 打开这个请求
         
         SHMWebView *shmWebview = [self createWebView];
-        shmWebview.url = url;
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
         
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:shmWebview.url
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url
                                                                                     host:self.host
                                                                                  webView:shmWebview];
         [self.navigationController pushViewController:viewController animated:YES];
