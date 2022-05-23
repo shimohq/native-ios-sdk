@@ -24,6 +24,16 @@
 /// @param buttons 按钮数据
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorButtons:(nonnull NSArray<SHMWebViewNavigatorButton *> *)buttons;
 
+@optional
+
+/// 设置返回按钮是否可用
+/// 如果返回按钮常驻就不需要实现该代理
+/// @param webview WebView 实例
+/// @param backButtonEnable 返回按钮是否可用。
+/// YES: 返回按钮可用，点击返回按钮会触发 WebView 的返回事件
+/// NO: 返回按钮不可用，点击返回按钮不会触发 WebView 的返回事件
+- (void)webview:(nonnull SHMWebView *)webview setBackButtonEnable:(BOOL)backButtonEnable;
+
 @end
 
 @interface SHMWebView : UIView
@@ -35,7 +45,7 @@
 @property (nonnull, nonatomic, copy) NSString *host;
 
 /// WebView 配置
-/// 一般情况不需要，会自动创建新的
+/// 一般情况不需要赋值，会自动创建新的
 @property (nullable, nonatomic, copy) WKWebViewConfiguration *configuration;
 
 /// WKWebView 默认 user agent 添加后缀
@@ -43,16 +53,8 @@
 /// 根据实际情况填充 lang 和 dir 字段 
 @property (nullable, nonatomic, copy) NSString *applicationNameForUserAgent;
 
-/// userContentController 的名称
-/// Default: _SMWV-UCC_
-@property (nullable, nonatomic, copy) NSString *userContentControllerName;
-
-/// 支持的 native 方法
-/// Default: @[@"setNavigatorTitle", @"setNavigatorBack", @"setNavigatorButtons"]
-@property (nonnull, nonatomic, copy) NSArray *supportedMethods;
-
 /// 使用 SHMWebView 需要实现的代理
-@property (nullable, nonatomic, weak) id<SHMWebViewDelegate> shmWebViewDelegate;
+@property (nullable, nonatomic, weak) id<SHMWebViewDelegate> delegate;
 
 /// WKWebView 的 WKNavigationDelegate
 /// 拦截跳转时用
@@ -61,6 +63,10 @@
 /// WKWebView 的 WKUIDelegate
 /// 自定义 alert、confirm、promit 和拦截新窗口打开时用
 @property (nullable, nonatomic, weak) id <WKUIDelegate> UIDelegate;
+
+/// 返回按钮是否可用
+/// 默认: NO
+@property (nonatomic, assign, readonly) BOOL backButtonEnable;
 
 /// didMoveToWindow 的时候自动创建
 /// 尽量不要直接操作 webview，因为无法保证 webview 是否已经创建好。

@@ -18,6 +18,9 @@
 
 @property (nullable, nonatomic, strong) SHMWebView *webview;
 
+@property (nonatomic, strong) UIBarButtonItem *backNavigatorButton;
+@property (nonatomic, strong) UIBarButtonItem *closeNavigatorButton;
+
 @property (nonatomic, strong) SHMWebViewNavigatorButton *shareNavigatorButton;
 @property (nonatomic, strong) SHMWebViewNavigatorButton *menuNavigatorButton;
 
@@ -54,10 +57,9 @@
     [super viewDidLoad];
     // Do any additional setup after loading the view.
     self.view.backgroundColor = [UIColor whiteColor];
-    self.navigationItem.leftBarButtonItems = @[
-        [[UIBarButtonItem alloc] initWithTitle:@"返回" style:UIBarButtonItemStylePlain target:self action:@selector(onGoBack)],
-        [[UIBarButtonItem alloc] initWithTitle:@"关闭" style:UIBarButtonItemStylePlain target:self action:@selector(onClose)]
-    ];
+    self.backNavigatorButton = [[UIBarButtonItem alloc] initWithTitle:@"返回" style:UIBarButtonItemStylePlain target:self action:@selector(onGoBack)];
+    self.closeNavigatorButton = [[UIBarButtonItem alloc] initWithTitle:@"关闭" style:UIBarButtonItemStylePlain target:self action:@selector(onClose)];
+    self.navigationItem.leftBarButtonItems = @[self.closeNavigatorButton];
     
     if (!self.webview) {
         self.webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
@@ -66,7 +68,7 @@
         self.webview.applicationNameForUserAgent = self.applicationNameForUserAgent;
     }
     
-    self.webview.shmWebViewDelegate = self;
+    self.webview.delegate = self;
     // TODO SHMWebView 已实现的 UIDelegate 不满足要求的时候才设置
     self.webview.UIDelegate = self;
     // TODO SHMWebView 已实现的 navigationDelegate 不满足要求的时候才设置
@@ -86,7 +88,11 @@
 - (void)onGoBack {
     [self.webview goBackWithCallback:^(BOOL nativeGoBack) {
         if (nativeGoBack) {
-            [self.navigationController popViewControllerAnimated:YES];
+            if ([self.webview.webview canGoBack]) {
+                [self.webview.webview goBack];
+            } else {
+                [self.navigationController popViewControllerAnimated:YES];
+            }
         }
     }];
 }
@@ -106,7 +112,7 @@
 #pragma mark - SHMWebViewDelegate
 
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorTitle:(nullable NSString *)title {
-    self.title = title ? title : @"石墨";
+    self.title = title ?: @"石墨文档";
 }
 
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorButtons:(nonnull NSArray<SHMWebViewNavigatorButton *> *)buttons {
@@ -125,6 +131,10 @@
     self.navigationItem.rightBarButtonItems = rightBarButtonItems;
 }
 
+- (void)webview:(nonnull SHMWebView *)webview setBackButtonEnable:(BOOL)backButtonVisible {
+    self.navigationItem.leftBarButtonItems = backButtonVisible ? @[self.backNavigatorButton, self.closeNavigatorButton] : @[self.closeNavigatorButton];
+}
+
 #pragma mark - WKUIDelegate
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
@@ -141,7 +151,7 @@
     UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         completionHandler(YES);
     }];
-    UIAlertAction *cancalAction = [UIAlertAction actionWithTitle:@"cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+    UIAlertAction *cancalAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
         completionHandler(NO);
     }];
     [alertVC addAction:okAction];
@@ -158,7 +168,7 @@
         UITextField *tf = [alertVC.textFields firstObject];
         completionHandler(tf.text);
     }];
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"cancel" style:(UIAlertActionStyleCancel) handler:^(UIAlertAction * _Nonnull action) {
+    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:(UIAlertActionStyleCancel) handler:^(UIAlertAction * _Nonnull action) {
         completionHandler(defaultText);
     }];
     [alertVC addAction:okAction];
