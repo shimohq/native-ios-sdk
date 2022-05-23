@@ -19,13 +19,18 @@ NSString *const SHMWVContextMethodSetNavigatorBack = @"setNavigatorBack";
 /// 设置导航各类功能按钮
 NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 
+/// SHMWebView 版本
+NSString *const SHMWebViewVersion = @"1.35";
+
 @interface SHMWebView () <WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler>
 
 /// userContentController 的名称
-/// 值: _SMWV-UCC_
+///
+/// Default: _SMWV-UCC_
 @property (nonnull, nonatomic, copy) NSString *userContentControllerName;
 
 /// 支持的 native 方法
+///
 /// Default: @[@"setNavigatorTitle", @"setNavigatorBack", @"setNavigatorButtons"]
 @property (nonnull, nonatomic, copy) NSArray *supportedMethods;
 
@@ -35,7 +40,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 /// 导航条按钮点击时调用的 JS
 @property (nonnull, nonatomic, strong) NSMutableDictionary *buttonScripts;
 
-@property (nonatomic, assign) BOOL backButtonEnable;
+@property (nonatomic, assign) BOOL backButtonEnabled;
 @property (nullable, nonatomic, strong) WKWebView *webview;
 
 @end
@@ -47,9 +52,11 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 - (instancetype)initWithFrame:(CGRect)frame {
     self = [super initWithFrame:frame];
     if (self) {
-        _backButtonEnable = NO;
+        _backButtonEnabled = NO;
         _userContentControllerName = @"_SMWV-UCC_";
-        _applicationNameForUserAgent = [NSString stringWithFormat:@"SMWV/1.35 (HWMT-730; lang: %@; dir: %@)", @"zh-CN", @"ltr"];
+        _appID = @"NativeSDK-1";
+        _lang = @"zh-CN";
+        _dir = @"ltr";
         _supportedMethods = @[SHMWVContextMethodSetNavigatorTitle, SHMWVContextMethodSetNavigatorBack, SHMWVContextMethodSetNavigatorButtons];
         _buttonScripts = [NSMutableDictionary dictionary];
         _UIDelegate = self;
@@ -165,8 +172,8 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 - (WKWebViewConfiguration *)createConfig {
     WKWebViewConfiguration *config = self.configuration ?: [[WKWebViewConfiguration alloc] init];
     
-    // 设置 userAgent
-    config.applicationNameForUserAgent = self.applicationNameForUserAgent;
+    // 设置 userAgent 后缀
+    config.applicationNameForUserAgent = [NSString stringWithFormat:@"SMWV/%@ (%@; lang: %@; dir: %@)", SHMWebViewVersion, self.appID, self.lang, self.dir];
 
     // 添加 userContentController
     config.userContentController = [self createUserContentController];
@@ -216,7 +223,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
             NSLog(@"SHMWebView: userController: `%@` called with goBackScript: %@", method, self.goBackScript);
             goBackScript = [[self class] isNotEmpty:goBackScript] ? goBackScript : nil;
             self.goBackScript = goBackScript;
-            [self setBackButtonEnable:self.goBackScript || self.webview.canGoBack];
+            [self setBackButtonEnabled:self.goBackScript || self.webview.canGoBack];
         } else if ([SHMWVContextMethodSetNavigatorButtons isEqualToString:method]) {
             NSArray<NSArray<NSDictionary *> *> *args = [body objectForKey:@"args"];
             NSArray<NSDictionary *> *buttons = args[0];
@@ -285,12 +292,16 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 //- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction preferences:(WKWebpagePreferences *)preferences decisionHandler:(void (^)(WKNavigationActionPolicy, WKWebpagePreferences *))decisionHandler WK_SWIFT_ASYNC(4) API_AVAILABLE(macos(10.15), ios(13.0)) {
 //    if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationAction:preferences:decisionHandler:)]) {
 //        [self.navigationDelegate webView:webView decidePolicyForNavigationAction:navigationAction preferences:preferences decisionHandler:decisionHandler];
+//    } else {
+//        // TODO 不知道 decisionHandler 该默认返回什么，所以暂时禁用该方法
 //    }
 //}
 
 //- (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler WK_SWIFT_ASYNC(3) {
 //    if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationResponse:decisionHandler:)]) {
 //        [self.navigationDelegate webView:webView decidePolicyForNavigationResponse:navigationResponse decisionHandler:decisionHandler];
+//    } else {
+//        // TODO 不知道 decisionHandler 该默认返回什么，所以暂时禁用该方法
 //    }
 //}
 
@@ -300,7 +311,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     // 清除返回脚本
     self.goBackScript = nil;
     // 更新是否显示返回按钮
-    [self setBackButtonEnable:self.webview.canGoBack];
+    [self setBackButtonEnabled:self.webview.canGoBack];
     // 清除导航条按钮
     [self.buttonScripts removeAllObjects];
     [self.delegate webview:self setNavigatorButtons:@[]];
@@ -329,7 +340,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation {
-    [self setBackButtonEnable:self.goBackScript || self.webview.canGoBack];
+    [self setBackButtonEnabled:self.goBackScript || self.webview.canGoBack];
     [self.delegate webview:self setNavigatorTitle:webView.title];
     if ([self.navigationDelegate respondsToSelector:@selector(webView:didFinishNavigation:)]) {
         [self.navigationDelegate webView:webView didFinishNavigation:navigation];
@@ -345,6 +356,8 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 //- (void)webView:(WKWebView *)webView didReceiveAuthenticationChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler WK_SWIFT_ASYNC_NAME(webView(_:respondTo:)) {
 //    if ([self.navigationDelegate respondsToSelector:@selector(webView:didReceiveAuthenticationChallenge:completionHandler:)]) {
 //        [self.navigationDelegate webView:webView didReceiveAuthenticationChallenge:challenge completionHandler:completionHandler];
+//    } else {
+//        // TODO 不知道 completionHandler 默认该返回什么，所以暂时禁用该方法
 //    }
 //}
 
@@ -357,6 +370,8 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 //- (void)webView:(WKWebView *)webView authenticationChallenge:(NSURLAuthenticationChallenge *)challenge shouldAllowDeprecatedTLS:(void (^)(BOOL))decisionHandler WK_SWIFT_ASYNC_NAME(webView(_:shouldAllowDeprecatedTLSFor:)) WK_SWIFT_ASYNC(3) API_AVAILABLE(macos(11.0), ios(14.0)) {
 //    if ([self.navigationDelegate respondsToSelector:@selector(webView:authenticationChallenge:shouldAllowDeprecatedTLS:)]) {
 //        [self.navigationDelegate webView:webView authenticationChallenge:challenge shouldAllowDeprecatedTLS:decisionHandler];
+//    } else {
+//        // TODO 不知道 decisionHandler 默认该返回什么，所以暂时禁用该方法
 //    }
 //}
 
@@ -437,13 +452,13 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
     }
 }
 
-- (void)setBackButtonEnable:(BOOL)backButtonEnable {
-    if (_backButtonEnable == backButtonEnable) {
+- (void)setBackButtonEnabled:(BOOL)backButtonEnabled {
+    if (_backButtonEnabled == backButtonEnabled) {
         return;
     }
-    _backButtonEnable = backButtonEnable;
-    if ([self.delegate respondsToSelector:@selector(webview:setBackButtonEnable:)]) {
-        [self.delegate webview:self setBackButtonEnable:_backButtonEnable];
+    _backButtonEnabled = backButtonEnabled;
+    if ([self.delegate respondsToSelector:@selector(webview:setBackButtonEnabled:)]) {
+        [self.delegate webview:self setBackButtonEnabled:_backButtonEnabled];
     }
 }
 
@@ -455,8 +470,7 @@ NSString *const SHMWVContextMethodSetNavigatorButtons = @"setNavigatorButtons";
 #pragma mark - Private
 
 #if !TARGET_OS_OSX
--(void)disallowKeyboardDisplayRequiresUserAction:(WKWebView *)webview
-{
+-(void)disallowKeyboardDisplayRequiresUserAction:(WKWebView *)webview {
     UIView* subview;
 
     for (UIView* view in webview.scrollView.subviews) {

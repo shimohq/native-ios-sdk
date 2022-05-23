@@ -14,7 +14,7 @@
 
 @property (nullable, nonatomic, strong) NSURL *url;
 @property (nullable, nonatomic, copy) NSString *host;
-@property (nullable, nonatomic, copy) NSString *applicationNameForUserAgent;
+@property (nullable, nonatomic, copy) NSString *appID;
 
 @property (nullable, nonatomic, strong) SHMWebView *webview;
 
@@ -31,24 +31,26 @@
 - (instancetype)init {
     self = [super init];
     if (self) {
-        _applicationNameForUserAgent = @"SMWV/1.35  (HWMT-730; lang: zh-CN; dir: ltr)";
+        _appID = @"HWMT-730";
     }
     return self;
 }
 
-- (instancetype)initWithWebView:(SHMWebView *)webview {
-    self = [self init];
-    if (self) {
-        _webview = webview;
-    }
-    return self;
-}
-
-- (instancetype)initWithUrl:(NSURL *)url host:(NSString *)host {
+- (instancetype)initWithUrl:(nonnull NSURL *)url host:(nonnull NSString *)host {
     self = [self init];
     if (self) {
         _url = url;
         _host = host;
+    }
+    return self;
+}
+
+- (instancetype)initWithUrl:(nonnull NSURL *)url
+                       host:(nonnull NSString *)host
+                    webView:(nonnull SHMWebView *)webview {
+    self = [self initWithUrl:url host:host];
+    if (self) {
+        _webview = webview;
     }
     return self;
 }
@@ -62,10 +64,8 @@
     self.navigationItem.leftBarButtonItems = @[self.closeNavigatorButton];
     
     if (!self.webview) {
-        self.webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
-        self.webview.host = self.host;
+        self.webview = [self createWebView];
         self.webview.url = self.url;
-        self.webview.applicationNameForUserAgent = self.applicationNameForUserAgent;
     }
     
     self.webview.delegate = self;
@@ -131,7 +131,7 @@
     self.navigationItem.rightBarButtonItems = rightBarButtonItems;
 }
 
-- (void)webview:(nonnull SHMWebView *)webview setBackButtonEnable:(BOOL)backButtonVisible {
+- (void)webview:(nonnull SHMWebView *)webview setBackButtonEnabled:(BOOL)backButtonVisible {
     self.navigationItem.leftBarButtonItems = backButtonVisible ? @[self.backNavigatorButton, self.closeNavigatorButton] : @[self.closeNavigatorButton];
 }
 
@@ -177,34 +177,36 @@
 }
 
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
-    NSString *host = navigationAction.request.URL.host;
+    NSURL *url = navigationAction.request.URL;
+    NSString *host = url.host;
+    NSLog(@"SHMWebView: createWebViewWithConfiguration: %@", url.absoluteString);
     // 非石墨外部链接，拦截后做外部打开的处理
     if (![self.host isEqualToString:host]) {
         // TODO: 在应用外部或其他 VC 中打开这个请求
         
-        SHMWebView *shmWebview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
-        shmWebview.host = self.host;
-        shmWebview.applicationNameForUserAgent = self.applicationNameForUserAgent;
-        shmWebview.url = navigationAction.request.URL;
+        SHMWebView *shmWebview = [self createWebView];
+        shmWebview.url = url;
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
         
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithWebView:shmWebview];
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:shmWebview.url
+                                                                                    host:self.host
+                                                                                 webView:shmWebview];
         [self.navigationController pushViewController:viewController animated:YES];
         return wkWebView;
     }
     
-    if ([SHMWebView isFileURL:navigationAction.request.URL]) {
+    if ([SHMWebView isFileURL:url]) {
         // TODO: 二级页面，需要新开 VC 打开这个请求
         
-        SHMWebView *shmWebview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
-        shmWebview.host = self.host;
-        shmWebview.applicationNameForUserAgent = self.applicationNameForUserAgent;
-        shmWebview.url = navigationAction.request.URL;
+        SHMWebView *shmWebview = [self createWebView];
+        shmWebview.url = url;
         shmWebview.configuration = configuration;
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
         
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithWebView:shmWebview];
+        SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:shmWebview.url
+                                                                                    host:self.host
+                                                                                 webView:shmWebview];
         [self.navigationController pushViewController:viewController animated:YES];
         return wkWebView;
     }
@@ -218,22 +220,22 @@
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
     // 只有顶层 frame 发生导航才处理，页面内部嵌套的 iframe 导航不管
     if (navigationAction.targetFrame.isMainFrame) {
-        NSLog(@"SHMWebView: navigate: %@", navigationAction.request.URL);
+        NSURL *url = navigationAction.request.URL;
+        NSLog(@"SHMWebView: decidePolicyForNavigationAction: %@", url.absoluteString);
         
         // 加载当前 WebView 初始页面放行
-        if ([webView.URL isEqual:navigationAction.request.URL]) {
+        if ([webView.URL isEqual:url]) {
             decisionHandler(WKNavigationActionPolicyAllow);
             return;
         }
         
-        NSString *host = navigationAction.request.URL.host;
+        NSString *host = url.host;
         // 非石墨外部链接，拦截后做外部打开的处理
         if (![self.host isEqualToString:host]) {
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 在应用外部或其他 VC 中打开这个请求
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL
-                                                                                        host:self.host];
+            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url host:self.host];
             [self.navigationController pushViewController:viewController animated:YES];
             return;
         }
@@ -243,8 +245,7 @@
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 二级页面，需要新开 VC 打开这个请求
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:navigationAction.request.URL
-                                                                                        host:self.host];
+            SHMWebViewController *viewController = [[SHMWebViewController alloc] initWithUrl:url host:self.host];
             [self.navigationController pushViewController:viewController animated:YES];
             return;
         }
@@ -252,6 +253,15 @@
     
     // 其他情况放行
     decisionHandler(WKNavigationActionPolicyAllow);
+}
+
+#pragma mark - Private
+
+- (SHMWebView *)createWebView {
+    SHMWebView *webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
+    webview.host = self.host;
+    webview.appID = self.appID;
+    return webview;
 }
 
 @end
