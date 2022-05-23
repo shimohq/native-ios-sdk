@@ -17,6 +17,7 @@
 		2867A50A2834E5200046EADF /* SHMViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2867A5092834E5200046EADF /* SHMViewController.m */; };
 		2867A50D2834E5960046EADF /* SHMWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2867A50C2834E5960046EADF /* SHMWebViewController.m */; };
 		28FD7502283770B800DA16DC /* SHMWebViewNavigatorButton.m in Sources */ = {isa = PBXBuildFile; fileRef = 28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */; };
+		28FD7505283B89F700DA16DC /* SHMOtherWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28FD7504283B89F700DA16DC /* SHMOtherWebViewController.m */; };
 		7FF9E1AA2836377000571541 /* SHMWebView.m in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9E1A92836377000571541 /* SHMWebView.m */; };
 /* End PBXBuildFile section */
 
@@ -38,6 +39,8 @@
 		2867A50C2834E5960046EADF /* SHMWebViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMWebViewController.m; sourceTree = "<group>"; };
 		28FD7500283770B800DA16DC /* SHMWebViewNavigatorButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHMWebViewNavigatorButton.h; sourceTree = "<group>"; };
 		28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMWebViewNavigatorButton.m; sourceTree = "<group>"; };
+		28FD7503283B89F700DA16DC /* SHMOtherWebViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHMOtherWebViewController.h; sourceTree = "<group>"; };
+		28FD7504283B89F700DA16DC /* SHMOtherWebViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMOtherWebViewController.m; sourceTree = "<group>"; };
 		6ABEF1D619DC86BB7534BBE8 /* Pods-NativeSDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NativeSDK.release.xcconfig"; path = "Target Support Files/Pods-NativeSDK/Pods-NativeSDK.release.xcconfig"; sourceTree = "<group>"; };
 		7FF9E1A82836377000571541 /* SHMWebView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHMWebView.h; sourceTree = "<group>"; };
 		7FF9E1A92836377000571541 /* SHMWebView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHMWebView.m; sourceTree = "<group>"; };
@@ -90,6 +93,8 @@
 				2867A5092834E5200046EADF /* SHMViewController.m */,
 				2867A50B2834E5960046EADF /* SHMWebViewController.h */,
 				2867A50C2834E5960046EADF /* SHMWebViewController.m */,
+				28FD7503283B89F700DA16DC /* SHMOtherWebViewController.h */,
+				28FD7504283B89F700DA16DC /* SHMOtherWebViewController.m */,
 				2867A5052834E3AA0046EADF /* SHMWindow.h */,
 				2867A5062834E3AA0046EADF /* SHMWindow.m */,
 				28FD74FF2837709B00DA16DC /* SHMWebView */,
@@ -244,6 +249,7 @@
 				2867A50A2834E5200046EADF /* SHMViewController.m in Sources */,
 				2867A4EB2834D9360046EADF /* AppDelegate.m in Sources */,
 				7FF9E1AA2836377000571541 /* SHMWebView.m in Sources */,
+				28FD7505283B89F700DA16DC /* SHMOtherWebViewController.m in Sources */,
 				2867A4FC2834D9380046EADF /* main.m in Sources */,
 				2867A50D2834E5960046EADF /* SHMWebViewController.m in Sources */,
 				28FD7502283770B800DA16DC /* SHMWebViewNavigatorButton.m in Sources */,
