@@ -22,6 +22,7 @@
 
 /// 设置导航条按钮
 ///
+/// 每次回调都用覆盖的方式更新导航条按钮。
 /// @param webview WebView 实例
 /// @param buttons 按钮数据
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorButtons:(nonnull NSArray<SHMWebViewNavigatorButton *> *)buttons;
@@ -46,7 +47,8 @@
 
 /// 当前石墨部署环境域名
 ///
-/// 为 nil 时，不拦截外部链接，外部链接可以直接在当前 WebView 内打开
+/// 为 nil 时，不拦截外部链接，外部链接可以直接在当前 WebView 内打开。
+/// 当 navigationDelegate UIDelegate 都已在外部实现时，host 将失去作用。
 @property (nullable, nonatomic, copy) NSString *host;
 
 /// 当前 App 的 ID

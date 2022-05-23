@@ -72,11 +72,13 @@ NSString *const SHMWebViewVersion = @"1.35";
         UIView *superView = self.webview.superview;
         if (superView != self) {
             // self.webview 父 View 不存在或者不是当前 View
-            [self.webview removeFromSuperview];
+            if (superView) {
+                [self.webview removeFromSuperview];
+            }
             self.webview.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
             [self addSubview:self.webview];
             
-            // didMoveToWindow 会触发多次，所以只在加载到父 View 时才加载 url
+            // didMoveToWindow 会触发多次，防止重复加载 url，只在加载到父 View 的时候加载
             if (self.url) {
                 [self.webview loadRequest:[NSURLRequest requestWithURL:self.url]];
             }
