@@ -268,23 +268,25 @@ NSString *const SHMWebViewVersion = @"1.35";
     } else {
         // 只有顶层 frame 发生导航才处理，页面内部嵌套的 iframe 导航不管
         if (navigationAction.targetFrame.isMainFrame) {
+            NSURL *url = navigationAction.request.URL;
             // 加载当前 WebView 初始页面放行
-            if ([webView.URL isEqual:navigationAction.request.URL]) {
+            if ([webView.URL isEqual:url]) {
                 decisionHandler(WKNavigationActionPolicyAllow);
                 return;
             }
             
-            NSString *host = navigationAction.request.URL.host;
+            NSString *host = url.host;
             
             // 非石墨外部链接，拦截后做外部打开的处理
             if (self.host && ![self.host isEqualToString:host]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
+                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
                 return;
             }
             
-            
-            if ([self.class isFileURL:navigationAction.request.URL]) {
-                decisionHandler(WKNavigationActionPolicyCancel);
+            // 石墨文件链接，在新 SHMWebView 打开
+            if ([self.class isFileURL:url]) {
+                decisionHandler(WKNavigationActionPolicyAllow);
                 return;
             }
         }
@@ -294,13 +296,6 @@ NSString *const SHMWebViewVersion = @"1.35";
 }
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
-    NSURL *url = webView.URL;
-    NSLog(@"SHMWebView: decidePolicyForNavigationResponse: %@", url.absoluteString);
-    NSLog(@"SHMWebView: canShowMIMEType: %d", navigationResponse.canShowMIMEType);
-    NSLog(@"SHMWebView: response.MIMEType: %@", navigationResponse.response.MIMEType);
-    NSLog(@"SHMWebView: response.suggestedFilename: %@", navigationResponse.response.suggestedFilename);
-    NSLog(@"SHMWebView: response.textEncodingName: %@", navigationResponse.response.textEncodingName);
-    
     if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationResponse:decisionHandler:)]) {
         [self.navigationDelegate webView:webView decidePolicyForNavigationResponse:navigationResponse decisionHandler:decisionHandler];
     } else {
@@ -459,15 +454,21 @@ NSString *const SHMWebViewVersion = @"1.35";
     [[self viewController] presentViewController:alertVC animated:YES completion:nil];
 }
 
+/**
+ 拦截 window.open
+ */
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
-    NSString *host = navigationAction.request.URL.host;
+    NSURL *url = navigationAction.request.URL;
+    NSString *host = url.host;
     // 非石墨外部链接，拦截后做外部打开的处理
     if (self.host && ![self.host isEqualToString:host]) {
+        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
         return [[WKWebView alloc] initWithFrame:self.bounds configuration:configuration];
     }
     
+    // 石墨文件
     if ([self.class isFileURL:navigationAction.request.URL]) {
-        return [[WKWebView alloc] initWithFrame:self.bounds configuration:configuration];
+        return nil;
     }
     
     // 其他请求直接在当前页面打开
