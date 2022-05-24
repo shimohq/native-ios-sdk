@@ -40,21 +40,8 @@
 
 #pragma mark - WKNavigationDelegate
 
-- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler WK_SWIFT_ASYNC(3) {
-    NSURL *url = navigationAction.request.URL;
-    NSLog(@"SHMOtherWebViewController: decidePolicyForNavigationAction: %@", url.absoluteString);
-    NSLog(@"SHMOtherWebViewController: navigationType: %ld", navigationAction.navigationType);
-    decisionHandler(WKNavigationActionPolicyAllow);
-}
-
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler WK_SWIFT_ASYNC(3) {
     NSURLResponse *response = navigationResponse.response;
-    NSLog(@"SHMOtherWebViewController: decidePolicyForNavigationResponse: %@", webView.URL.absoluteString);
-    NSLog(@"SHMOtherWebViewController: canShowMIMEType: %d", navigationResponse.canShowMIMEType);
-    NSLog(@"SHMOtherWebViewController: response.MIMEType: %@", response.MIMEType);
-    NSLog(@"SHMOtherWebViewController: response.URL: %@", response.URL);
-    NSLog(@"SHMOtherWebViewController: response.suggestedFilename: %@", response.suggestedFilename);
-    NSLog(@"SHMOtherWebViewController: response.textEncodingName: %@", response.textEncodingName);
     if (navigationResponse.canShowMIMEType
         && response.URL
         && response.MIMEType
