@@ -12,6 +12,12 @@
 
 #import <Masonry/Masonry.h>
 
+typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
+    SHMWebViewOpenUrlMethodNotSHMWebView,
+    SHMWebViewOpenUrlMethodSHMWebView,
+    SHMWebViewOpenUrlMethodExternal
+};
+
 @interface SHMWebViewController () <SHMWebViewDelegate, WKUIDelegate, WKNavigationDelegate>
 
 @property (nullable, nonatomic, copy) NSString *appID;
@@ -22,6 +28,11 @@
 @property (nonatomic, strong) SHMWebViewNavigatorButton *shareNavigatorButton;
 @property (nonatomic, strong) SHMWebViewNavigatorButton *menuNavigatorButton;
 
+/**
+ 打开 host 不是 self.host 的链接的方法
+ */
+@property (nonatomic, assign) SHMWebViewOpenUrlMethod openUrlMethod;
+
 @end
 
 @implementation SHMWebViewController
@@ -30,6 +41,8 @@
     self = [super init];
     if (self) {
         _appID = @"HWMT-730";
+        // TODO 打开外部链接的方法
+        _openUrlMethod = SHMWebViewOpenUrlMethodExternal;
     }
     return self;
 }
@@ -164,6 +177,9 @@
     [self presentViewController:alertVC animated:YES completion:nil];
 }
 
+/**
+ 拦截 window.open
+ */
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
     NSURL *url = navigationAction.request.URL;
     NSString *host = url.host;
@@ -171,14 +187,13 @@
     // 非石墨外部链接，拦截后做外部打开的处理
     if (self.host && ![self.host isEqualToString:host]) {
         // TODO: 在应用外部或其他 VC 中打开这个请求
-        NSInteger caseValue = 0;
-        switch (caseValue) {
-            case 1:
+        switch (self.openUrlMethod) {
+            case SHMWebViewOpenUrlMethodExternal:
                 // TODO 用外部浏览器打开
                 [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-                return nil;
+                return [[WKWebView alloc] initWithFrame:self.view.bounds configuration:configuration];
                 break;
-            case 2: {
+            case SHMWebViewOpenUrlMethodSHMWebView: {
                 // TODO 用 SHMWebView 中打开外部链接
                 SHMWebView *shmWebview = [self createWebView];
                 shmWebview.configuration = configuration;
@@ -242,13 +257,12 @@
         if (self.host && ![self.host isEqualToString:host]) {
             decisionHandler(WKNavigationActionPolicyCancel);
             // TODO: 在应用外部或其他 VC 中打开这个请求
-            NSInteger caseValue = 0;
-            switch (caseValue) {
-                case 1:
+            switch (self.openUrlMethod) {
+                case SHMWebViewOpenUrlMethodExternal:
                     // TODO 用外部浏览器打开
                     [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
                     break;
-                case 2: {
+                case SHMWebViewOpenUrlMethodSHMWebView: {
                     // TODO 用 SHMWebView 打开外部链接
                     SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
                     viewController.url = url;
