@@ -18,6 +18,7 @@
 		2867A50D2834E5960046EADF /* SHMWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 2867A50C2834E5960046EADF /* SHMWebViewController.m */; };
 		28FD7502283770B800DA16DC /* SHMWebViewNavigatorButton.m in Sources */ = {isa = PBXBuildFile; fileRef = 28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */; };
 		28FD7505283B89F700DA16DC /* SHMOtherWebViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28FD7504283B89F700DA16DC /* SHMOtherWebViewController.m */; };
+		28FD750E283CCF2C00DA16DC /* SHMDownloadViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 28FD750D283CCF2C00DA16DC /* SHMDownloadViewController.m */; };
 		7FF9E1AA2836377000571541 /* SHMWebView.m in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9E1A92836377000571541 /* SHMWebView.m */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,8 @@
 		28FD7501283770B800DA16DC /* SHMWebViewNavigatorButton.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMWebViewNavigatorButton.m; sourceTree = "<group>"; };
 		28FD7503283B89F700DA16DC /* SHMOtherWebViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHMOtherWebViewController.h; sourceTree = "<group>"; };
 		28FD7504283B89F700DA16DC /* SHMOtherWebViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMOtherWebViewController.m; sourceTree = "<group>"; };
+		28FD750C283CCF2C00DA16DC /* SHMDownloadViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SHMDownloadViewController.h; sourceTree = "<group>"; };
+		28FD750D283CCF2C00DA16DC /* SHMDownloadViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SHMDownloadViewController.m; sourceTree = "<group>"; };
 		6ABEF1D619DC86BB7534BBE8 /* Pods-NativeSDK.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-NativeSDK.release.xcconfig"; path = "Target Support Files/Pods-NativeSDK/Pods-NativeSDK.release.xcconfig"; sourceTree = "<group>"; };
 		7FF9E1A82836377000571541 /* SHMWebView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SHMWebView.h; sourceTree = "<group>"; };
 		7FF9E1A92836377000571541 /* SHMWebView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = SHMWebView.m; sourceTree = "<group>"; };
@@ -81,22 +84,24 @@
 		2867A4E82834D9360046EADF /* NativeSDK */ = {
 			isa = PBXGroup;
 			children = (
-				2867A4E92834D9360046EADF /* AppDelegate.h */,
-				2867A4EA2834D9360046EADF /* AppDelegate.m */,
 				2867A4F52834D9380046EADF /* Assets.xcassets */,
 				2867A4FA2834D9380046EADF /* Info.plist */,
 				2867A4F72834D9380046EADF /* LaunchScreen.storyboard */,
 				2867A4FB2834D9380046EADF /* main.m */,
+				2867A4E92834D9360046EADF /* AppDelegate.h */,
+				2867A4EA2834D9360046EADF /* AppDelegate.m */,
 				2867A4EC2834D9360046EADF /* SceneDelegate.h */,
 				2867A4ED2834D9360046EADF /* SceneDelegate.m */,
+				2867A5052834E3AA0046EADF /* SHMWindow.h */,
+				2867A5062834E3AA0046EADF /* SHMWindow.m */,
 				2867A5082834E5200046EADF /* SHMViewController.h */,
 				2867A5092834E5200046EADF /* SHMViewController.m */,
 				2867A50B2834E5960046EADF /* SHMWebViewController.h */,
 				2867A50C2834E5960046EADF /* SHMWebViewController.m */,
 				28FD7503283B89F700DA16DC /* SHMOtherWebViewController.h */,
 				28FD7504283B89F700DA16DC /* SHMOtherWebViewController.m */,
-				2867A5052834E3AA0046EADF /* SHMWindow.h */,
-				2867A5062834E3AA0046EADF /* SHMWindow.m */,
+				28FD750C283CCF2C00DA16DC /* SHMDownloadViewController.h */,
+				28FD750D283CCF2C00DA16DC /* SHMDownloadViewController.m */,
 				28FD74FF2837709B00DA16DC /* SHMWebView */,
 			);
 			path = NativeSDK;
@@ -246,6 +251,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2867A5072834E3AA0046EADF /* SHMWindow.m in Sources */,
+				28FD750E283CCF2C00DA16DC /* SHMDownloadViewController.m in Sources */,
 				2867A50A2834E5200046EADF /* SHMViewController.m in Sources */,
 				2867A4EB2834D9360046EADF /* AppDelegate.m in Sources */,
 				7FF9E1AA2836377000571541 /* SHMWebView.m in Sources */,

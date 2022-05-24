@@ -8,6 +8,7 @@
 
 #import "SHMWebViewController.h"
 #import "SHMOtherWebViewController.h"
+#import "SHMDownloadViewController.h"
 
 #import <Masonry/Masonry.h>
 
@@ -116,6 +117,12 @@
     self.navigationItem.leftBarButtonItems = backButtonVisible ? @[self.backNavigatorButton, self.closeNavigatorButton] : @[self.closeNavigatorButton];
 }
 
+- (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response {
+    SHMDownloadViewController *viewController = [[SHMDownloadViewController alloc] init];
+    viewController.response = response;
+    [self.navigationController pushViewController:viewController animated:YES];
+}
+
 #pragma mark - WKUIDelegate
 
 - (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
@@ -164,25 +171,36 @@
     // 非石墨外部链接，拦截后做外部打开的处理
     if (self.host && ![self.host isEqualToString:host]) {
         // TODO: 在应用外部或其他 VC 中打开这个请求
-        if (YES) {
-            // TODO 用非 SHMWebView 中打开外部链接
-            WKWebView *wkWebView = [[WKWebView alloc] initWithFrame:self.view.bounds configuration:configuration];
-            SHMOtherWebViewController *viewController = [[SHMOtherWebViewController alloc] init];
-            viewController.webview = wkWebView;
-            viewController.url = url;
-            [self.navigationController pushViewController:viewController animated:YES];
-            return wkWebView;
-        } else {
-            // TODO 用 SHMWebView 中打开外部链接
-            SHMWebView *shmWebview = [self createWebView];
-            shmWebview.configuration = configuration;
-            WKWebView *wkWebView = [shmWebview createAndSetWebView];
-            
-            SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
-            viewController.url = url;
-            viewController.webview = shmWebview;
-            [self.navigationController pushViewController:viewController animated:YES];
-            return wkWebView;
+        NSInteger caseValue = 0;
+        switch (caseValue) {
+            case 1:
+                // TODO 用外部浏览器打开
+                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                return nil;
+                break;
+            case 2: {
+                // TODO 用 SHMWebView 中打开外部链接
+                SHMWebView *shmWebview = [self createWebView];
+                shmWebview.configuration = configuration;
+                WKWebView *wkWebView = [shmWebview createAndSetWebView];
+                
+                SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+                viewController.url = url;
+                viewController.webview = shmWebview;
+                [self.navigationController pushViewController:viewController animated:YES];
+                return wkWebView;
+                break;
+            }
+            default: {
+                // TODO 用非 SHMWebView 中打开外部链接
+                WKWebView *wkWebView = [[WKWebView alloc] initWithFrame:self.view.bounds configuration:configuration];
+                SHMOtherWebViewController *viewController = [[SHMOtherWebViewController alloc] init];
+                viewController.webview = wkWebView;
+                viewController.url = url;
+                [self.navigationController pushViewController:viewController animated:YES];
+                return wkWebView;
+                break;
+            }
         }
     }
     
@@ -223,18 +241,27 @@
         // 非石墨外部链接，拦截后做外部打开的处理
         if (self.host && ![self.host isEqualToString:host]) {
             decisionHandler(WKNavigationActionPolicyCancel);
-            
             // TODO: 在应用外部或其他 VC 中打开这个请求
-            if (YES) {
-                // TODO 不用 SHMWebView 打开外部链接
-                SHMOtherWebViewController *viewController = [[SHMOtherWebViewController alloc] init];
-                viewController.url = url;
-                [self.navigationController pushViewController:viewController animated:YES];
-            } else {
-                // TODO 用 SHMWebView 打开外部链接
-                SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
-                viewController.url = url;
-                [self.navigationController pushViewController:viewController animated:YES];
+            NSInteger caseValue = 0;
+            switch (caseValue) {
+                case 1:
+                    // TODO 用外部浏览器打开
+                    [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                    break;
+                case 2: {
+                    // TODO 用 SHMWebView 打开外部链接
+                    SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+                    viewController.url = url;
+                    [self.navigationController pushViewController:viewController animated:YES];
+                    break;
+                }
+                default: {
+                    // TODO 用非 SHMWebView 打开外部链接
+                    SHMOtherWebViewController *viewController = [[SHMOtherWebViewController alloc] init];
+                    viewController.url = url;
+                    [self.navigationController pushViewController:viewController animated:YES];
+                    break;
+                }
             }
             return;
         }
@@ -254,6 +281,21 @@
     
     // 其他情况放行
     decisionHandler(WKNavigationActionPolicyAllow);
+}
+
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
+    NSURLResponse *response = navigationResponse.response;
+    if (navigationResponse.canShowMIMEType
+        && response.MIMEType
+        && ![@"text/html" isEqualToString:response.MIMEType]) {
+        decisionHandler(WKNavigationResponsePolicyCancel);
+        // TODO MIME type 可以获取，且值不是 text/html，下载文件
+        SHMDownloadViewController *viewController = [[SHMDownloadViewController alloc] init];
+        viewController.response = response;
+        [self.navigationController pushViewController:viewController animated:YES];
+    } else {
+        decisionHandler(WKNavigationResponsePolicyAllow);
+    }
 }
 
 #pragma mark - Private

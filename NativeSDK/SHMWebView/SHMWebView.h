@@ -38,6 +38,14 @@
 /// NO: 返回按钮不可用，点击返回按钮不会触发 WebView 的返回事件
 - (void)webview:(nonnull SHMWebView *)webview setBackButtonEnabled:(BOOL)backButtonEnabled;
 
+/// 下载文件
+///
+/// 当 url 请求返回的 MIME type 不是 text/html 时，该请求当下载处理。如果不实现该方法，将直接在 WebView 打开。
+/// 当 SHMWebView.delegate 在外部实现时，些方法将失效，不再回调。
+/// @param webview WebView 实例
+/// @param response url fileName MIMEType 等信息
+- (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response;
+
 @end
 
 @interface SHMWebView : UIView
