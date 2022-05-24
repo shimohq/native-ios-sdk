@@ -275,11 +275,13 @@ NSString *const SHMWebViewVersion = @"1.35";
             }
             
             NSString *host = navigationAction.request.URL.host;
+            
             // 非石墨外部链接，拦截后做外部打开的处理
             if (self.host && ![self.host isEqualToString:host]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 return;
             }
+            
             
             if ([self.class isFileURL:navigationAction.request.URL]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
@@ -288,6 +290,33 @@ NSString *const SHMWebViewVersion = @"1.35";
         }
         // 其他情况放行
         decisionHandler(WKNavigationActionPolicyAllow);
+    }
+}
+
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
+    NSURL *url = webView.URL;
+    NSLog(@"SHMWebView: decidePolicyForNavigationResponse: %@", url.absoluteString);
+    NSLog(@"SHMWebView: canShowMIMEType: %d", navigationResponse.canShowMIMEType);
+    NSLog(@"SHMWebView: response.MIMEType: %@", navigationResponse.response.MIMEType);
+    NSLog(@"SHMWebView: response.suggestedFilename: %@", navigationResponse.response.suggestedFilename);
+    NSLog(@"SHMWebView: response.textEncodingName: %@", navigationResponse.response.textEncodingName);
+    
+    if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationResponse:decisionHandler:)]) {
+        [self.navigationDelegate webView:webView decidePolicyForNavigationResponse:navigationResponse decisionHandler:decisionHandler];
+    } else {
+        NSURLResponse *response = navigationResponse.response;
+        if (navigationResponse.canShowMIMEType
+            && response.URL
+            && response.MIMEType
+            && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {
+            // TODO MIME type 可以获取，且值不是 text/html，下载文件
+            if ([self.delegate respondsToSelector:@selector(webview:downloadWithResponse:)]) {
+                [self.delegate webview:self downloadWithResponse:navigationResponse.response];
+                decisionHandler(WKNavigationResponsePolicyCancel);
+                return;
+            }
+        }
+        decisionHandler(WKNavigationResponsePolicyAllow);
     }
 }
 
