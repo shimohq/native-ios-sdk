@@ -107,7 +107,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
 #pragma mark - SHMWebViewDelegate
 
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorTitle:(nullable NSString *)title {
-    self.title = title ?: @"石墨文档";
+    self.title = (title && ![title isEqualToString:@""]) ? title : @"石墨文档";
 }
 
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorButtons:(nonnull NSArray<SHMWebViewNavigatorButton *> *)buttons {
