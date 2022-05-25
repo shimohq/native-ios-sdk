@@ -83,11 +83,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
 - (void)onGoBack {
     [self.webview goBackWithCallback:^(BOOL nativeGoBack) {
         if (nativeGoBack) {
-            if ([self.webview.webview canGoBack]) {
-                [self.webview.webview goBack];
-            } else {
-                [self.navigationController popViewControllerAnimated:YES];
-            }
+            [self.navigationController popViewControllerAnimated:YES];
         }
     }];
 }
