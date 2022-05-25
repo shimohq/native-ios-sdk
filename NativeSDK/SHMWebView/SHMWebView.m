@@ -239,6 +239,7 @@ NSString *const SHMWebViewVersion = @"1.35";
                 
                 NSString *payload = [button valueForKey:@"payload"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n payload: %@", method, payload);
+                payload = [[self class] isNil:payload] ? nil : payload;
                 
                 NSString *callback = [button valueForKey:@"callback"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n callback: %@", method, callback);
