@@ -233,13 +233,12 @@ NSString *const SHMWebViewVersion = @"1.35";
             for (NSDictionary *button in buttons) {
                 NSString *type = [button valueForKey:@"type"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n type: %@", method, type);
+                if ([[self class] isNil:type]) {
+                    continue;
+                }
                 
                 NSString *payload = [button valueForKey:@"payload"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n payload: %@", method, payload);
-                
-                if ([[self class] isNil:type] || [[self class] isNil:payload]) {
-                    continue;
-                }
                 
                 NSString *callback = [button valueForKey:@"callback"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n callback: %@", method, callback);
@@ -572,8 +571,8 @@ NSString *const SHMWebViewVersion = @"1.35";
     return (UIViewController *)responder;
 }
 
-- (NSString *)getButonKeyWithType:(nonnull NSString *)type payload:(nonnull NSString *)payload {
-    return [NSString stringWithFormat:@"type:%@_payload:%@", type, payload];
+- (NSString *)getButonKeyWithType:(nonnull NSString *)type payload:(nullable NSString *)payload {
+    return [NSString stringWithFormat:@"type:%@_payload:%@", type, payload ?: @"nil"];
 }
 
 + (BOOL)isEmpty:(nullable NSString *)string {

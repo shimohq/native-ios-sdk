@@ -13,7 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 @interface SHMWebViewNavigatorButton : NSObject
 
 @property (nonnull, nonatomic, copy) NSString *type;
-@property (nonnull, nonatomic, copy) NSString *payload;
+@property (nullable, nonatomic, copy) NSString *payload;
 
 @end
 
