@@ -113,9 +113,14 @@ NSString *const SHMWebViewVersion = @"1.35";
             // 这里什么都不用做，js 已经处理了这个点击回调
             callback(false);
         } else {
-            // 如果这里 result 为 false，需要执行 native 端的返回逻辑
-            // 执行 native 的返回逻辑
-            callback(true);
+            if ([self.webview canGoBack]) {
+                // 执行 WebView 的返回逻辑
+                [self.webview goBack];
+                callback(false);
+            } else {
+                // 执行 native 的返回逻辑
+                callback(true);
+            }
         }
     }];
 }
@@ -216,8 +221,8 @@ NSString *const SHMWebViewVersion = @"1.35";
             // title 为需要设置的导航标题
             NSString *title = args[0];
             NSLog(@"SHMWebView: userController: `%@` called with title: %@ self.webview.title: %@", method, title, self.webview.title);
-            title = [[self class] isNotNil:title] ? title : nil;
-            [self.delegate webview:self setNavigatorTitle: title ?: self.webview.title];
+            title = [[self class] isNotEmpty:title] ? title : self.webview.title;
+            [self.delegate webview:self setNavigatorTitle:title];
         } else if ([SHMWVContextMethodSetNavigatorBack isEqualToString:method]) {
             NSArray<NSString *> *args = [body objectForKey:@"args"];
             // callback 为 native 导航返回按钮点击时需要执行的脚本
@@ -237,7 +242,7 @@ NSString *const SHMWebViewVersion = @"1.35";
                     continue;
                 }
                 
-                NSString *payload = [button valueForKey:@"payload"] ?: @"";
+                NSString *payload = [button valueForKey:@"payload"];
                 NSLog(@"SHMWebView: userController: `%@` called with button\n payload: %@", method, payload);
                 payload = [[self class] isNil:payload] ? nil : payload;
 
