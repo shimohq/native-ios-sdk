@@ -43,6 +43,9 @@ NSString *const SHMWebViewVersion = @"1.35";
 @property (nonatomic, assign) BOOL backButtonEnabled;
 @property (nullable, nonatomic, strong) WKWebView *webview;
 
+/// WebView 有没有加载完成过
+@property (nonatomic, assign) BOOL everLoadFinished;
+
 @end
 
 @implementation SHMWebView
@@ -220,14 +223,12 @@ NSString *const SHMWebViewVersion = @"1.35";
             NSArray<NSString *> *args = [body objectForKey:@"args"];
             // title 为需要设置的导航标题
             NSString *title = args[0];
-            NSLog(@"SHMWebView: userController: `%@` called with title: %@ self.webview.title: %@", method, title, self.webview.title);
             title = [[self class] isNotEmpty:title] ? title : self.webview.title;
             [self.delegate webview:self setNavigatorTitle:title];
         } else if ([SHMWVContextMethodSetNavigatorBack isEqualToString:method]) {
             NSArray<NSString *> *args = [body objectForKey:@"args"];
             // callback 为 native 导航返回按钮点击时需要执行的脚本
             NSString *goBackScript = args[0];
-            NSLog(@"SHMWebView: userController: `%@` called with goBackScript: %@", method, self.goBackScript);
             goBackScript = [[self class] isNotEmpty:goBackScript] ? goBackScript : nil;
             self.goBackScript = goBackScript;
             [self setBackButtonEnabled:self.goBackScript || self.webview.canGoBack];
@@ -237,19 +238,13 @@ NSString *const SHMWebViewVersion = @"1.35";
             NSMutableArray<SHMWebViewNavigatorButton *> *navigatorButtons = [NSMutableArray array];
             for (NSDictionary *button in buttons) {
                 NSString *type = [button valueForKey:@"type"];
-                NSLog(@"SHMWebView: userController: `%@` called with button\n type: %@", method, type);
                 if ([[self class] isNil:type]) {
                     continue;
                 }
                 
                 NSString *payload = [button valueForKey:@"payload"];
-                NSLog(@"SHMWebView: userController: `%@` called with button\n payload: %@", method, payload);
                 payload = [[self class] isNil:payload] ? nil : payload;
-
-                
                 NSString *callback = [button valueForKey:@"callback"];
-                NSLog(@"SHMWebView: userController: `%@` called with button\n callback: %@", method, callback);
-                
                 NSString *key = [self getButonKeyWithType:type payload:payload];
                 [self.buttonScripts setObject:callback forKey:key];
                 
@@ -284,7 +279,7 @@ NSString *const SHMWebViewVersion = @"1.35";
             NSString *host = url.host;
             
             // 非石墨外部链接，拦截后做外部打开的处理
-            if (self.host && ![self.host isEqualToString:host]) {
+            if (host && self.hosts && [self.hosts containsObject:host]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
                 return;
@@ -302,21 +297,24 @@ NSString *const SHMWebViewVersion = @"1.35";
 }
 
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
+    NSURLResponse *response = navigationResponse.response;
+    if (navigationResponse.forMainFrame
+        && navigationResponse.canShowMIMEType
+        && response.URL
+        && response.MIMEType
+        && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {
+        // TODO MIME type 可以获取，且值不是 text/html，下载文件
+        if ([self.delegate respondsToSelector:@selector(webview:downloadWithResponse:inNewWindow:)]) {
+            // INFO 未加载完成过就表示是在新窗口打开的下载，处理下载操作后要关闭该窗口
+            [self.delegate webview:self downloadWithResponse:navigationResponse.response inNewWindow:!self.everLoadFinished];
+            decisionHandler(WKNavigationResponsePolicyCancel);
+            return;
+        }
+    }
+    
     if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationResponse:decisionHandler:)]) {
         [self.navigationDelegate webView:webView decidePolicyForNavigationResponse:navigationResponse decisionHandler:decisionHandler];
     } else {
-        NSURLResponse *response = navigationResponse.response;
-        if (navigationResponse.canShowMIMEType
-            && response.URL
-            && response.MIMEType
-            && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {
-            // TODO MIME type 可以获取，且值不是 text/html，下载文件
-            if ([self.delegate respondsToSelector:@selector(webview:downloadWithResponse:)]) {
-                [self.delegate webview:self downloadWithResponse:navigationResponse.response];
-                decisionHandler(WKNavigationResponsePolicyCancel);
-                return;
-            }
-        }
         decisionHandler(WKNavigationResponsePolicyAllow);
     }
 }
@@ -372,6 +370,7 @@ NSString *const SHMWebViewVersion = @"1.35";
 }
 
 - (void)webView:(WKWebView *)webView didFinishNavigation:(null_unspecified WKNavigation *)navigation {
+    self.everLoadFinished = YES;
     [self setBackButtonEnabled:self.goBackScript || self.webview.canGoBack];
     [self.delegate webview:self setNavigatorTitle:webView.title];
     if ([self.navigationDelegate respondsToSelector:@selector(webView:didFinishNavigation:)]) {
@@ -380,6 +379,7 @@ NSString *const SHMWebViewVersion = @"1.35";
 }
 
 - (void)webView:(WKWebView *)webView didFailNavigation:(null_unspecified WKNavigation *)navigation withError:(NSError *)error {
+    self.everLoadFinished = YES;
     if ([self.navigationDelegate respondsToSelector:@selector(webView:didFailNavigation:withError:)]) {
         [self.navigationDelegate webView:webView didFailNavigation:navigation withError:error];
     }
@@ -467,17 +467,17 @@ NSString *const SHMWebViewVersion = @"1.35";
     NSURL *url = navigationAction.request.URL;
     NSString *host = url.host;
     // 非石墨外部链接，拦截后做外部打开的处理
-    if (self.host && ![self.host isEqualToString:host]) {
+    if (host && self.hosts && ![self.hosts containsObject:host]) {
         [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
         return [[WKWebView alloc] initWithFrame:self.bounds configuration:configuration];
     }
     
-    // 石墨文件
+    // TODO 石墨文件在新窗口打开
     if ([self.class isFileURL:navigationAction.request.URL]) {
         return nil;
     }
     
-    // 其他请求直接在当前页面打开
+    // TODO 其他石墨内部链接在新窗口打开
     return nil;
 }
 

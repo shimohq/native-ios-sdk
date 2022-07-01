@@ -126,10 +126,17 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
     self.navigationItem.leftBarButtonItems = backButtonVisible ? @[self.backNavigatorButton, self.closeNavigatorButton] : @[self.closeNavigatorButton];
 }
 
-- (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response {
+- (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response inNewWindow:(BOOL)inNewWindow {
     SHMDownloadViewController *viewController = [[SHMDownloadViewController alloc] init];
     viewController.response = response;
-    [self.navigationController pushViewController:viewController animated:YES];
+    if (inNewWindow) {
+        NSMutableArray *viewControllers = [self.navigationController.viewControllers mutableCopy];
+        [viewControllers removeLastObject];
+        [viewControllers addObject:viewController];
+        [self.navigationController setViewControllers:viewControllers animated:NO];
+    } else {
+        [self.navigationController pushViewController:viewController animated:YES];
+    }
 }
 
 #pragma mark - WKUIDelegate
@@ -179,9 +186,9 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
     NSURL *url = navigationAction.request.URL;
     NSString *host = url.host;
-    NSLog(@"SHMWebView: createWebViewWithConfiguration: %@", url.absoluteString);
+    NSLog(@"SHMWebViewController: createWebViewWithConfiguration: %@", url.absoluteString);
     // 非石墨外部链接，拦截后做外部打开的处理
-    if (self.host && ![self.host isEqualToString:host]) {
+    if (host && self.hosts && ![self.hosts containsObject:host]) {
         // TODO: 在应用外部或其他 VC 中打开这个请求
         switch (self.openUrlMethod) {
             case SHMWebViewOpenUrlMethodExternal:
@@ -215,23 +222,18 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         }
     }
     
-    if ([SHMWebView isFileURL:url]) {
-        // TODO: 二级页面，需要新开 VC 打开这个请求
-        
-        SHMWebView *shmWebview = [self createWebView];
-        shmWebview.configuration = configuration;
-        WKWebView *wkWebView = [shmWebview createAndSetWebView];
-        
-        SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
-        viewController.host = self.host;
-        viewController.url = url;
-        viewController.webview = shmWebview;
-        [self.navigationController pushViewController:viewController animated:YES];
-        return wkWebView;
-    }
+    // TODO: 内部链接新开 VC 打开这个请求
+    SHMWebView *shmWebview = [self createWebView];
+    shmWebview.configuration = configuration;
+    WKWebView *wkWebView = [shmWebview createAndSetWebView];
     
-    // 其他请求直接在当前页面打开
-    return nil;
+    SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
+    viewController.hosts = self.hosts;
+    viewController.url = url;
+    viewController.webview = shmWebview;
+    [self.navigationController pushViewController:viewController animated:YES];
+    
+    return wkWebView;
 }
 
 #pragma mark - WKNavigationDelegate
@@ -240,7 +242,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
     // 只有顶层 frame 发生导航才处理，页面内部嵌套的 iframe 导航不管
     if (navigationAction.targetFrame.isMainFrame) {
         NSURL *url = navigationAction.request.URL;
-        NSLog(@"SHMWebView: decidePolicyForNavigationAction: %@", url.absoluteString);
+        NSLog(@"SHMWebViewController: decidePolicyForNavigationAction: %@", url.absoluteString);
         
         // 加载当前 WebView 初始页面放行
         if ([webView.URL isEqual:url]) {
@@ -250,7 +252,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         
         NSString *host = url.host;
         // 非石墨外部链接，拦截后做外部打开的处理
-        if (self.host && ![self.host isEqualToString:host]) {
+        if (host && self.hosts && ![self.hosts containsObject:host]) {
             decisionHandler(WKNavigationActionPolicyCancel);
             // TODO: 在应用外部或其他 VC 中打开这个请求
             switch (self.openUrlMethod) {
@@ -277,13 +279,13 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         }
         
         if ([SHMWebView isFileURL:url]) {
-            NSLog(@"SHMWebView: navigate to file: %@", url);
+            NSLog(@"SHMWebViewController: navigate to file: %@", url);
             decisionHandler(WKNavigationActionPolicyCancel);
             
             // TODO: 二级页面，需要新开 VC 打开这个请求
             SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
             viewController.url = url;
-            viewController.host = host;
+            viewController.hosts = self.hosts;
             [self.navigationController pushViewController:viewController animated:YES];
             return;
         }
@@ -293,26 +295,11 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
     decisionHandler(WKNavigationActionPolicyAllow);
 }
 
-- (void)webView:(WKWebView *)webView decidePolicyForNavigationResponse:(WKNavigationResponse *)navigationResponse decisionHandler:(void (^)(WKNavigationResponsePolicy))decisionHandler {
-    NSURLResponse *response = navigationResponse.response;
-    if (navigationResponse.canShowMIMEType
-        && response.MIMEType
-        && ![@"text/html" isEqualToString:response.MIMEType]) {
-        decisionHandler(WKNavigationResponsePolicyCancel);
-        // TODO MIME type 可以获取，且值不是 text/html，下载文件
-        SHMDownloadViewController *viewController = [[SHMDownloadViewController alloc] init];
-        viewController.response = response;
-        [self.navigationController pushViewController:viewController animated:YES];
-    } else {
-        decisionHandler(WKNavigationResponsePolicyAllow);
-    }
-}
-
 #pragma mark - Private
 
 - (SHMWebView *)createWebView {
     SHMWebView *webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
-    webview.host = self.host;
+    webview.hosts = self.hosts;
     webview.appID = self.appID;
     return webview;
 }

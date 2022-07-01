@@ -29,17 +29,33 @@ NSString *const SHMDataHostKey = @"host";
     [super viewDidLoad];
     
     self.title = @"石墨 iOS SDK";
+    NSArray *hosts = @[@"shimo.im", @"uploader.shimo.im"];
     
     self.datas = @[
         @{
             SHMDataTitleKey: @"Demo",
             SHMDataUrlKey: @"https://shimo-app-test.oss-cn-beijing.aliyuncs.com/resource/native-sdk/index.html",
-            SHMDataHostKey: @"shimo.im"
+            SHMDataHostKey: hosts
         },
         @{
-            SHMDataTitleKey: @"首页",
+            SHMDataTitleKey: @"shimo.im 首页",
             SHMDataUrlKey: @"https://shimo.im/recent",
-            SHMDataHostKey: @"shimo.im"
+            SHMDataHostKey: hosts
+        },
+        @{
+            SHMDataTitleKey: @"shimo.im 上传",
+            SHMDataUrlKey: @"https://shimo.im/forms/KlkKVg9bmah6Zbqd/fill",
+            SHMDataHostKey: hosts
+        },
+        @{
+            SHMDataTitleKey: @"shimo.im 下载",
+            SHMDataUrlKey: @"https://shimo.im/docs/N2A1M21oDRhb56AD",
+            SHMDataHostKey: hosts
+        },
+        @{
+            SHMDataTitleKey: @"shimodev.com 首页",
+            SHMDataUrlKey: @"https://shimodev.com/recent",
+            SHMDataHostKey: @[@"shimodev.com", @"uploader.shimodev.com"]
         }
     ];
     
@@ -78,7 +94,7 @@ NSString *const SHMDataHostKey = @"host";
     
     SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
     viewController.url = [NSURL URLWithString:data[SHMDataUrlKey]];
-    viewController.host = data[SHMDataHostKey];
+    viewController.hosts = data[SHMDataHostKey];
     [self.navigationController pushViewController:viewController animated:YES];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }
