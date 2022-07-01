@@ -44,7 +44,8 @@
 /// 当 SHMWebView.delegate 在外部实现时，些方法将失效，不再回调。
 /// @param webview WebView 实例
 /// @param response url fileName MIMEType 等信息
-- (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response;
+/// @param inNewWindow 是否是在新窗口打开的下载，如果是的打开下载界面时要关闭该窗口
+- (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response inNewWindow:(BOOL)inNewWindow;
 
 @end
 
@@ -53,11 +54,11 @@
 /// 将要加载的 URL
 @property (nonnull, nonatomic, strong) NSURL *url;
 
-/// 当前石墨部署环境域名
+/// WebView 内打开的链接域名白名单
 ///
 /// 为 nil 时，不拦截外部链接，外部链接可以直接在当前 WebView 内打开。
 /// 当 navigationDelegate UIDelegate 都已在外部实现时，host 将失去作用。
-@property (nullable, nonatomic, copy) NSString *host;
+@property (nullable, nonatomic, copy) NSArray<NSString *> *hosts;
 
 /// 当前 App 的 ID
 ///
