@@ -302,7 +302,7 @@ NSString *const SHMWebViewVersion = @"1.35";
         && navigationResponse.canShowMIMEType
         && response.URL
         && response.MIMEType
-        && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {
+        && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {        
         // TODO MIME type 可以获取，且值不是 text/html，下载文件
         if ([self.delegate respondsToSelector:@selector(webview:downloadWithResponse:inNewWindow:)]) {
             // INFO 未加载完成过就表示是在新窗口打开的下载，处理下载操作后要关闭该窗口

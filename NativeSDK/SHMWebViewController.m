@@ -13,8 +13,11 @@
 #import <Masonry/Masonry.h>
 
 typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
+    // 新窗口使用非 SHMWebView 打开
     SHMWebViewOpenUrlMethodNotSHMWebView,
+    // 新窗口使用 SHMWebView 打开
     SHMWebViewOpenUrlMethodSHMWebView,
+    // 外部浏览器打开
     SHMWebViewOpenUrlMethodExternal
 };
 
@@ -29,7 +32,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
 @property (nonatomic, strong) SHMWebViewNavigatorButton *menuNavigatorButton;
 
 /**
- 打开 host 不是 self.host 的链接的方法
+ 打开外部链接的方法
  */
 @property (nonatomic, assign) SHMWebViewOpenUrlMethod openUrlMethod;
 
@@ -62,11 +65,13 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
     } else {
         self.webview = [self createWebView];
     }
+    // 配置打开的 URL
     self.webview.url = self.url;
+    // 配置 SHMWebViewDelegate，必须配置
     self.webview.delegate = self;
-    // TODO SHMWebView 已实现的 UIDelegate 不满足要求的时候才设置
+    // TODO SHMWebView 已实现的 UIDelegate 不满足要求的时候才配置
     self.webview.UIDelegate = self;
-    // TODO SHMWebView 已实现的 navigationDelegate 不满足要求的时候才设置
+    // TODO SHMWebView 已实现的 navigationDelegate 不满足要求的时候才配置
     self.webview.navigationDelegate = self;
     
     [self.view addSubview:self.webview];

@@ -29,6 +29,7 @@ NSString *const SHMDataHostKey = @"host";
     [super viewDidLoad];
     
     self.title = @"石墨 iOS SDK";
+    // uploader.shimo.im 为附件下载域名，如果未配置附件链接将以外部浏览器的方式打开，配置后将在 App 内打开
     NSArray *hosts = @[@"shimo.im", @"uploader.shimo.im"];
     
     self.datas = @[
