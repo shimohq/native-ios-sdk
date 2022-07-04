@@ -62,7 +62,6 @@ NSString *const SHMWebViewVersion = @"1.35";
         _dir = @"ltr";
         _supportedMethods = @[SHMWVContextMethodSetNavigatorTitle, SHMWVContextMethodSetNavigatorBack, SHMWVContextMethodSetNavigatorButtons];
         _buttonScripts = [NSMutableDictionary dictionary];
-        _UIDelegate = self;
     }
     return self;
 }
@@ -173,7 +172,7 @@ NSString *const SHMWebViewVersion = @"1.35";
     [self disallowKeyboardDisplayRequiresUserAction:webview];
     
     // 设置各类 delegate
-    webview.UIDelegate = self.UIDelegate;
+    webview.UIDelegate = self;
     webview.navigationDelegate = self;
     
     return webview;
@@ -279,15 +278,16 @@ NSString *const SHMWebViewVersion = @"1.35";
             NSString *host = url.host;
             
             // 非石墨外部链接，拦截后做外部打开的处理
-            if (host && self.hosts && [self.hosts containsObject:host]) {
+            if (host && self.hosts && ![self.hosts containsObject:host]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
-                [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
+                [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodExternal];
                 return;
             }
             
             // 石墨文件链接，在新 SHMWebView 打开
             if ([self.class isFileURL:url]) {
-                decisionHandler(WKNavigationActionPolicyAllow);
+                decisionHandler(WKNavigationActionPolicyCancel);
+                [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodNewWebView];
                 return;
             }
         }
@@ -302,7 +302,7 @@ NSString *const SHMWebViewVersion = @"1.35";
         && navigationResponse.canShowMIMEType
         && response.URL
         && response.MIMEType
-        && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {        
+        && ![@"text/html" isEqualToString:navigationResponse.response.MIMEType]) {
         // TODO MIME type 可以获取，且值不是 text/html，下载文件
         if ([self.delegate respondsToSelector:@selector(webview:downloadWithResponse:inNewWindow:)]) {
             // INFO 未加载完成过就表示是在新窗口打开的下载，处理下载操作后要关闭该窗口
@@ -421,65 +421,114 @@ NSString *const SHMWebViewVersion = @"1.35";
 
 #pragma mark - WKUIDelegate
 
-- (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
-    UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:message message:@"" preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        completionHandler();
-    }];
-    [alertVC addAction:okAction];
-    [[self viewController] presentViewController:alertVC animated:YES completion:nil];
-}
-
-- (void)webView:(WKWebView *)webView runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(BOOL))completionHandler {
-    UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:message message:@"" preferredStyle:UIAlertControllerStyleAlert];
-    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
-        completionHandler(YES);
-    }];
-    UIAlertAction *cancalAction = [UIAlertAction actionWithTitle:@"cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
-        completionHandler(NO);
-    }];
-    [alertVC addAction:okAction];
-    [alertVC addAction:cancalAction];
-    [[self viewController] presentViewController:alertVC animated:YES completion:nil];
-}
-
-- (void)webView:(WKWebView *)webView runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSString * _Nullable))completionHandler {
-    UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:prompt message:@"" preferredStyle:(UIAlertControllerStyleAlert)];
-    [alertVC addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
-        textField.placeholder = @"input";
-    }];
-    UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:(UIAlertActionStyleDefault) handler:^(UIAlertAction * _Nonnull action) {
-        UITextField *tf = [alertVC.textFields firstObject];
-        completionHandler(tf.text);
-    }];
-    UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"cancel" style:(UIAlertActionStyleCancel) handler:^(UIAlertAction * _Nonnull action) {
-        completionHandler(defaultText);
-    }];
-    [alertVC addAction:okAction];
-    [alertVC addAction:cancelAction];
-    [[self viewController] presentViewController:alertVC animated:YES completion:nil];
-}
-
 /**
  拦截 window.open
  */
 - (nullable WKWebView *)webView:(WKWebView *)webView createWebViewWithConfiguration:(WKWebViewConfiguration *)configuration forNavigationAction:(WKNavigationAction *)navigationAction windowFeatures:(WKWindowFeatures *)windowFeatures {
-    NSURL *url = navigationAction.request.URL;
-    NSString *host = url.host;
-    // 非石墨外部链接，拦截后做外部打开的处理
-    if (host && self.hosts && ![self.hosts containsObject:host]) {
-        [[UIApplication sharedApplication] openURL:url options:@{} completionHandler:nil];
-        return [[WKWebView alloc] initWithFrame:self.bounds configuration:configuration];
+    if ([self.UIDelegate respondsToSelector:@selector(webView:createWebViewWithConfiguration:forNavigationAction:windowFeatures:)]) {
+        return [self.UIDelegate webView:webView createWebViewWithConfiguration:configuration forNavigationAction:navigationAction windowFeatures:windowFeatures];
+    } else {
+        NSURL *url = navigationAction.request.URL;
+        NSString *host = url.host;
+        // 外部链接，拦截后外部打开
+        if (host && self.hosts && ![self.hosts containsObject:host]) {
+            return [self.delegate webview:self windowOpenWithMethod:SHMWebViewNavigateMethodExternal configuration:configuration forNavigationAction:navigationAction windowFeatures:windowFeatures];
+        } else {
+            // 其他石墨内部链接在新窗口打开
+            return [self.delegate webview:self windowOpenWithMethod:SHMWebViewNavigateMethodNewWebView configuration:configuration forNavigationAction:navigationAction windowFeatures:windowFeatures];
+        }
     }
-    
-    // TODO 石墨文件在新窗口打开
-    if ([self.class isFileURL:navigationAction.request.URL]) {
-        return nil;
-    }
-    
-    // TODO 其他石墨内部链接在新窗口打开
-    return nil;
 }
+
+- (void)webViewDidClose:(WKWebView *)webView {
+    if ([self.UIDelegate respondsToSelector:@selector(webViewDidClose:)]) {
+        [self.UIDelegate webViewDidClose:webView];
+    }
+}
+
+- (void)webView:(WKWebView *)webView runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
+    if ([self.UIDelegate respondsToSelector:@selector(webView:runJavaScriptAlertPanelWithMessage:initiatedByFrame:completionHandler:)]) {
+        [self.UIDelegate webView:webView runJavaScriptAlertPanelWithMessage:message initiatedByFrame:frame completionHandler:completionHandler];
+    } else {
+        UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:message message:@"" preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            completionHandler();
+        }];
+        [alertVC addAction:okAction];
+        [[self viewController] presentViewController:alertVC animated:YES completion:nil];
+    }
+}
+
+- (void)webView:(WKWebView *)webView runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(BOOL))completionHandler {
+    if ([self.UIDelegate respondsToSelector:@selector(webView:runJavaScriptConfirmPanelWithMessage:initiatedByFrame:completionHandler:)]) {
+        [self.UIDelegate webView:webView runJavaScriptConfirmPanelWithMessage:message initiatedByFrame:frame completionHandler:completionHandler];
+    } else {
+        UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:message message:@"" preferredStyle:UIAlertControllerStyleAlert];
+        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
+            completionHandler(YES);
+        }];
+        UIAlertAction *cancalAction = [UIAlertAction actionWithTitle:@"cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction * _Nonnull action) {
+            completionHandler(NO);
+        }];
+        [alertVC addAction:okAction];
+        [alertVC addAction:cancalAction];
+        [[self viewController] presentViewController:alertVC animated:YES completion:nil];
+    }
+}
+
+- (void)webView:(WKWebView *)webView runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSString * _Nullable))completionHandler {
+    if ([self.UIDelegate respondsToSelector:@selector(webView:runJavaScriptTextInputPanelWithPrompt:defaultText:initiatedByFrame:completionHandler:)]) {
+        [self.UIDelegate webView:webView runJavaScriptTextInputPanelWithPrompt:prompt defaultText:defaultText initiatedByFrame:frame completionHandler:completionHandler];
+    } else {
+        UIAlertController *alertVC = [UIAlertController alertControllerWithTitle:prompt message:@"" preferredStyle:(UIAlertControllerStyleAlert)];
+        [alertVC addTextFieldWithConfigurationHandler:^(UITextField * _Nonnull textField) {
+            textField.placeholder = @"input";
+        }];
+        UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:(UIAlertActionStyleDefault) handler:^(UIAlertAction * _Nonnull action) {
+            UITextField *tf = [alertVC.textFields firstObject];
+            completionHandler(tf.text);
+        }];
+        UIAlertAction *cancelAction = [UIAlertAction actionWithTitle:@"cancel" style:(UIAlertActionStyleCancel) handler:^(UIAlertAction * _Nonnull action) {
+            completionHandler(defaultText);
+        }];
+        [alertVC addAction:okAction];
+        [alertVC addAction:cancelAction];
+        [[self viewController] presentViewController:alertVC animated:YES completion:nil];
+    }
+}
+
+//- (void)webView:(WKWebView *)webView requestMediaCapturePermissionForOrigin:(WKSecurityOrigin *)origin initiatedByFrame:(WKFrameInfo *)frame type:(WKMediaCaptureType)type decisionHandler:(void (^)(WKPermissionDecision decision))decisionHandler {
+//}
+
+//- (void)webView:(WKWebView *)webView requestDeviceOrientationAndMotionPermissionForOrigin:(WKSecurityOrigin *)origin initiatedByFrame:(WKFrameInfo *)frame decisionHandler:(void (^)(WKPermissionDecision decision))decisionHandler API_AVAILABLE(ios(15.0)) API_UNAVAILABLE(macos);
+
+//- (BOOL)webView:(WKWebView *)webView shouldPreviewElement:(WKPreviewElementInfo *)elementInfo API_DEPRECATED_WITH_REPLACEMENT("webView:contextMenuConfigurationForElement:completionHandler:", ios(10.0, 13.0));
+
+//- (nullable UIViewController *)webView:(WKWebView *)webView previewingViewControllerForElement:(WKPreviewElementInfo *)elementInfo defaultActions:(NSArray<id <WKPreviewActionItem>> *)previewActions API_DEPRECATED_WITH_REPLACEMENT("webView:contextMenuConfigurationForElement:completionHandler:", ios(10.0, 13.0));
+
+//- (void)webView:(WKWebView *)webView commitPreviewingViewController:(UIViewController *)previewingViewController API_DEPRECATED_WITH_REPLACEMENT("webView:contextMenuForElement:willCommitWithAnimator:", ios(10.0, 13.0));
+
+//- (void)webView:(WKWebView *)webView contextMenuConfigurationForElement:(WKContextMenuElementInfo *)elementInfo completionHandler:(void (^)(UIContextMenuConfiguration * _Nullable configuration))completionHandler WK_SWIFT_ASYNC_NAME(webView(_:contextMenuConfigurationFor:)) API_AVAILABLE(ios(13.0));
+
+- (void)webView:(WKWebView *)webView contextMenuWillPresentForElement:(WKContextMenuElementInfo *)elementInfo API_AVAILABLE(ios(13.0)) {
+    if ([self.UIDelegate respondsToSelector:@selector(webView:contextMenuWillPresentForElement:)]) {
+        [self.UIDelegate webView:webView contextMenuWillPresentForElement:elementInfo];
+    }
+}
+
+- (void)webView:(WKWebView *)webView contextMenuForElement:(WKContextMenuElementInfo *)elementInfo willCommitWithAnimator:(id <UIContextMenuInteractionCommitAnimating>)animator API_AVAILABLE(ios(13.0)) {
+    if ([self.UIDelegate respondsToSelector:@selector(webView:contextMenuForElement:willCommitWithAnimator:)]) {
+        [self.UIDelegate webView:webView contextMenuForElement:elementInfo willCommitWithAnimator:animator];
+    }
+}
+
+- (void)webView:(WKWebView *)webView contextMenuDidEndForElement:(WKContextMenuElementInfo *)elementInfo API_AVAILABLE(ios(13.0)) {
+    if ([self.UIDelegate respondsToSelector:@selector(webView:contextMenuDidEndForElement:)]) {
+        [self.UIDelegate webView:webView contextMenuDidEndForElement:elementInfo];
+    }
+}
+
+//- (void)webView:(WKWebView *)webView runOpenPanelWithParameters:(WKOpenPanelParameters *)parameters initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL *> * _Nullable URLs))completionHandler API_AVAILABLE(macos(10.12));
 
 #pragma mark - Setter
 
@@ -500,9 +549,17 @@ NSString *const SHMWebViewVersion = @"1.35";
     }
 }
 
-- (void)setUIDelegate:(id<WKUIDelegate>)UIDelegate {
-    _UIDelegate = UIDelegate;
-    self.webview.UIDelegate = UIDelegate;
+#pragma mark - Getter
+
+- (UIViewController *)viewController {
+    UIResponder *responder = self;
+    while (![responder isKindOfClass:[UIViewController class]]) {
+        responder = [responder nextResponder];
+        if (nil == responder) {
+            break;
+        }
+    }
+    return (UIViewController *)responder;
 }
 
 #pragma mark - Private
@@ -566,17 +623,6 @@ NSString *const SHMWebViewVersion = @"1.35";
     method_setImplementation(method, override);
 }
 #endif // !TARGET_OS_OSX
-
-- (UIViewController *)viewController {
-    UIResponder *responder = self;
-    while (![responder isKindOfClass:[UIViewController class]]) {
-        responder = [responder nextResponder];
-        if (nil == responder) {
-            break;
-        }
-    }
-    return (UIViewController *)responder;
-}
 
 - (NSString *)getButonKeyWithType:(nonnull NSString *)type payload:(nullable NSString *)payload {
     return [NSString stringWithFormat:@"type:%@_payload:%@", type, payload ?: @"nil"];

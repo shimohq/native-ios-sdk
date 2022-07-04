@@ -15,6 +15,27 @@ open NativeSDK.xcworkspace
 SHMWebView 为对接石墨 mobile web 的封装，使用说明参考头文件 [SHMWebView.h](https://github.com/shimohq/native-ios-sdk/blob/main/NativeSDK/SHMWebView/SHMWebView.h)，
 具体封装方法参考 [SHMWebViewController.m](https://github.com/shimohq/native-ios-sdk/blob/main/NativeSDK/SHMWebViewController.m)
 
+Example:
+
+```
+- (SHMWebView *)createWebView {
+    SHMWebView *webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
+    // [必选项] 配置 当前 App 的 ID
+    webview.appID = @"HWMT-730";
+    // [必选项] 配置打开的 URL
+    webview.url = @"https://shimo.im/recent";
+    // [可选项] 配置 WebView 内打开的链接域名白名单
+    webview.hosts = @[@"shimo.im", @"uploader.shimo.im"];
+    // [必选项] 配置 SHMWebViewDelegate
+    webview.delegate = self;
+    return webview;
+}
+
+#pragma mark - SHMWebViewDelegate
+
+// TODO 实现 SHMWebViewDelegate 代理
+```
+
 ### 上传
 
 WKWebView 默认支持上传，不需要做额外配置

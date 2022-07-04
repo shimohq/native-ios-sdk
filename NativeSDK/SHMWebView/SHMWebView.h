@@ -10,20 +10,45 @@
 #ifndef SHMWebView_h
 #define SHMWebView_h
 
+/// 打开 URL 的方式
+typedef NS_ENUM(NSUInteger, SHMWebViewNavigateMethod) {
+    // 新窗口使用 SHMWebView 打开，常用于打开文件和 window.open 方式打开任何信任 host 链接
+    SHMWebViewNavigateMethodNewWebView,
+    // 外部浏览器打开，常用于非信任 host 链接
+    SHMWebViewNavigateMethodExternal
+};
+
+
 @class SHMWebView;
 
 @protocol SHMWebViewDelegate <NSObject>
 
+/// 在非当前 SHMWebView 打开 URL
+/// @param webview SHMWebView 实例
+/// @param url 将要打开的 URL
+/// @param method 打开 URL 的方式
+- (void)webview:(nonnull SHMWebView *)webview navigateToUrl:(nullable NSURL *)url withMethod:(SHMWebViewNavigateMethod)method;
+
+/// window.open 方式打开 URL
+/// @param webview SHMWebView 实例
+/// @param method 打开 URL 的方式
+/// @return 将要打开 url 的 WKWebView 实例，返回 nil 将不会跳转
+- (nullable WKWebView *)webview:(nonnull SHMWebView *)webview
+           windowOpenWithMethod:(SHMWebViewNavigateMethod)method
+                  configuration:(nonnull WKWebViewConfiguration *)configuration
+            forNavigationAction:(nonnull WKNavigationAction *)navigationAction
+                 windowFeatures:(nonnull WKWindowFeatures *)windowFeatures;
+
 /// 设置标题
 ///
-/// @param webview WebView 实例
+/// @param webview SHMWebView 实例
 /// @param title 标题，为 nil 时表示 WebView 没有设置标题，使用自定义的默认标题
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorTitle:(nullable NSString *)title;
 
 /// 设置导航条按钮
 ///
 /// 每次回调都用覆盖的方式更新导航条按钮。
-/// @param webview WebView 实例
+/// @param webview SHMWebView 实例
 /// @param buttons 按钮数据
 - (void)webview:(nonnull SHMWebView *)webview setNavigatorButtons:(nonnull NSArray<SHMWebViewNavigatorButton *> *)buttons;
 
@@ -41,7 +66,6 @@
 /// 监听文件下载
 ///
 /// 当 url 请求返回的 MIME type 不是 text/html 时，该请求当下载处理。如果不实现该方法，将直接在 WebView 打开。
-/// 当 SHMWebView.delegate 在外部实现时，些方法将失效，不再回调。
 /// @param webview WebView 实例
 /// @param response url fileName MIMEType 等信息
 /// @param inNewWindow 是否是在新窗口打开的下载，如果是的打开下载界面时要关闭该窗口
@@ -57,7 +81,6 @@
 /// WebView 内打开的链接域名白名单
 ///
 /// 为 nil 时，不拦截外部链接，外部链接可以直接在当前 WebView 内打开。
-/// 当 navigationDelegate UIDelegate 都已在外部实现时，host 将失去作用。
 @property (nullable, nonatomic, copy) NSArray<NSString *> *hosts;
 
 /// 当前 App 的 ID
@@ -83,14 +106,16 @@
 /// 使用 SHMWebView 需要实现的代理
 @property (nullable, nonatomic, weak) id<SHMWebViewDelegate> delegate;
 
-/// WKWebView 的 WKNavigationDelegate
+/// 自定义 WKWebView 的 WKNavigationDelegate
 ///
-/// 拦截跳转时用
+/// 可自定义跳转拦截
+/// 默认效果不满足要求时才需要配置
 @property (nullable, nonatomic, weak) id <WKNavigationDelegate> navigationDelegate;
 
-/// WKWebView 的 WKUIDelegate
+/// 自定义 WKWebView 的 WKUIDelegate
 ///
-/// 自定义 alert、confirm、promit 和拦截新窗口打开时用
+/// 可自定义 alert、confirm、promit 和拦截新窗口打开时用
+/// 默认效果不满足要求时才需要配置
 @property (nullable, nonatomic, weak) id <WKUIDelegate> UIDelegate;
 
 /// 返回按钮是否可用
@@ -103,6 +128,10 @@
 /// didMoveToWindow 的时候自动创建，
 /// 尽量不要直接操作 webview，因为无法保证 webview 是否已经创建好。
 @property (nonnull, nonatomic, strong, readonly) WKWebView *webview;
+
+
+/// 获取 SHMWebView 所在的 UIViewController
+@property (nullable, nonatomic, strong, readonly) UIViewController *viewController;
 
 /// 创建并添加 WKWebView 到 SHMWebView
 ///
