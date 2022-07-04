@@ -61,6 +61,8 @@
     namelabel.text = self.response.suggestedFilename;
     mimelabel.text = self.response.MIMEType;
     urllabel.text = self.response.URL.absoluteString;
+    
+    NSLog(@"%@", self.response.URL.absoluteString);
 }
 
 @end

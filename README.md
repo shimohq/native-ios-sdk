@@ -21,7 +21,7 @@ Example:
 - (SHMWebView *)createWebView {
     SHMWebView *webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
     // [必选项] 配置 当前 App 的 ID
-    webview.appID = @"HWMT-730";
+    webview.appID = <you app id>;
     // [必选项] 配置打开的 URL
     webview.url = @"https://shimo.im/recent";
     // [可选项] 配置 WebView 内打开的链接域名白名单
