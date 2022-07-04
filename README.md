@@ -61,10 +61,9 @@ webview.hosts = @[@"shimo.im", @"uploader.shimo.im"];
 /// 监听文件下载
 ///
 /// 当 url 请求返回的 MIME type 不是 text/html 时，该请求当下载处理。如果不实现该方法，将直接在 WebView 打开。
-/// 当 SHMWebView.delegate 在外部实现时，些方法将失效，不再回调。
-/// @param webview WebView 实例
+/// @param webview SHMWebView 实例
 /// @param response url fileName MIMEType 等信息
-/// @param inNewWindow 是否是在新窗口打开的下载，如果是的打开下载界面时要关闭该窗口
+/// @param inNewWindow 是否是在新窗口打开的下载，如果是的打开下载界面时要关闭当前窗口
 - (void)webview:(nonnull SHMWebView *)webview downloadWithResponse:(nonnull NSURLResponse *)response inNewWindow:(BOOL)inNewWindow;
 ```
 
@@ -85,7 +84,10 @@ Example：
     viewController.response = response;
     if (inNewWindow) {
         NSMutableArray *viewControllers = [self.navigationController.viewControllers mutableCopy];
-        [viewControllers removeLastObject];
+        UIViewController *currentViewController = webview.viewController;
+        if (currentViewController) {
+            [viewControllers removeObject:currentViewController];
+        }
         [viewControllers addObject:viewController];
         [self.navigationController setViewControllers:viewControllers animated:NO];
     } else {
