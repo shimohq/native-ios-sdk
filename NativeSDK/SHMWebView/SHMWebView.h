@@ -81,7 +81,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewNavigateMethod) {
 /// WebView 内打开的链接域名白名单
 ///
 /// 为 nil 时，不拦截外部链接，外部链接可以直接在当前 WebView 内打开。
-@property (nullable, nonatomic, copy) NSArray<NSString *> *hosts;
+@property (nullable, nonatomic, copy) NSArray<NSString *> *origins;
 
 /// 当前 App 的 ID
 ///
@@ -152,6 +152,10 @@ typedef NS_ENUM(NSUInteger, SHMWebViewNavigateMethod) {
 /// 是否为石墨文件链接
 /// @param url 链接
 + (BOOL)isFileURL:(nonnull NSURL *)url;
+
+/// 是否需要单独为某些页面新开窗口
+/// 比如协作者面板等
++ (BOOL)shouldOpenWindow:(nonnull NSURL *)url;
 
 @end
 

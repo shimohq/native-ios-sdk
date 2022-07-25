@@ -29,34 +29,34 @@ NSString *const SHMDataHostKey = @"host";
     [super viewDidLoad];
     
     self.title = @"石墨 iOS SDK";
-    // uploader.shimo.im 为附件下载域名，如果未配置附件链接将以外部浏览器的方式打开，配置后将在 App 内打开
-    NSArray *hosts = @[@"shimo.im", @"uploader.shimo.im"];
+    // https://uploader.shimo.im/ 为附件下载地址，如果未配置附件链接将以外部浏览器的方式打开，配置后将在 App 内打开
+    NSArray *origins = @[@"https://shimo.im", @"https://uploader.shimo.im"];
     
     self.datas = @[
         @{
             SHMDataTitleKey: @"Demo",
             SHMDataUrlKey: @"https://shimo-app-test.oss-cn-beijing.aliyuncs.com/resource/native-sdk/index.html",
-            SHMDataHostKey: hosts
+            SHMDataHostKey: origins
         },
         @{
             SHMDataTitleKey: @"shimo.im 首页",
             SHMDataUrlKey: @"https://shimo.im/recent",
-            SHMDataHostKey: hosts
+            SHMDataHostKey: origins
         },
         @{
             SHMDataTitleKey: @"shimo.im 上传",
             SHMDataUrlKey: @"https://shimo.im/forms/KlkKVg9bmah6Zbqd/fill",
-            SHMDataHostKey: hosts
+            SHMDataHostKey: origins
         },
         @{
             SHMDataTitleKey: @"shimo.im 下载",
             SHMDataUrlKey: @"https://shimo.im/docs/N2A1M21oDRhb56AD",
-            SHMDataHostKey: hosts
+            SHMDataHostKey: origins
         },
         @{
             SHMDataTitleKey: @"shimodev.com 首页",
             SHMDataUrlKey: @"https://shimodev.com/recent",
-            SHMDataHostKey: @[@"shimodev.com", @"uploader.shimodev.com"]
+            SHMDataHostKey: @[@"https://shimodev.com", @"https://uploader.shimodev.com"]
         }
     ];
     
@@ -95,7 +95,7 @@ NSString *const SHMDataHostKey = @"host";
     
     SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
     viewController.url = [NSURL URLWithString:data[SHMDataUrlKey]];
-    viewController.hosts = data[SHMDataHostKey];
+    viewController.origins = data[SHMDataHostKey];
     [self.navigationController pushViewController:viewController animated:YES];
     [tableView deselectRowAtIndexPath:indexPath animated:YES];
 }

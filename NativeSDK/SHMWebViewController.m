@@ -129,7 +129,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         // TODO: 二级页面，需要新开 VC 打开这个请求
         SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
         viewController.url = url;
-        viewController.hosts = self.hosts;
+        viewController.origins = self.origins;
         [self.navigationController pushViewController:viewController animated:YES];
     }
 }
@@ -179,7 +179,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         WKWebView *wkWebView = [shmWebview createAndSetWebView];
         
         SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
-        viewController.hosts = self.hosts;
+        viewController.origins = self.origins;
         viewController.url = url;
         viewController.webview = shmWebview;
         [self.navigationController pushViewController:viewController animated:YES];
@@ -233,7 +233,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
 - (SHMWebView *)createWebView {
     SHMWebView *webview = [[SHMWebView alloc] initWithFrame:self.view.bounds];
     // 配置 WebView 内打开的链接域名白名单
-    webview.hosts = self.hosts;
+    webview.origins = self.origins;
     // 配置 当前 App 的 ID
     webview.appID = self.appID;
     return webview;

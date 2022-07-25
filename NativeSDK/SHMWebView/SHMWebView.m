@@ -111,7 +111,8 @@ NSString *const SHMWebViewVersion = @"1.35";
         return;
     }
     [self.webview evaluateJavaScript:self.goBackScript completionHandler:^(id _Nullable result, NSError * _Nullable error) {
-        if (result) {
+        NSNumber *handled = result;
+        if ([handled boolValue]) {
             // 这里什么都不用做，js 已经处理了这个点击回调
             callback(false);
         } else {
@@ -154,6 +155,17 @@ NSString *const SHMWebViewVersion = @"1.35";
         NSString *firstPath = pathComponents[1];
         
         return [filePaths containsObject:firstPath];
+    } else {
+        return NO;
+    }
+}
+
+
++ (BOOL)shouldOpenWindow:(NSURL *)url {
+    NSArray<NSString *> *pathComponents = url.pathComponents;
+    
+    if (pathComponents.count > 2) {
+        return [pathComponents[2] isEqualToString:@"collaborators"];
     } else {
         return NO;
     }
@@ -213,6 +225,11 @@ NSString *const SHMWebViewVersion = @"1.35";
 #pragma mark - WKScriptMessageHandler
 
 - (void)userContentController:(WKUserContentController *)userContentController didReceiveScriptMessage:(WKScriptMessage *)message {
+    // 目前忽略所有来自 iFrame 的消息
+    if (!message.frameInfo.isMainFrame) {
+        return;
+    }
+    
     if ([self.userContentControllerName isEqualToString:message.name]) {
         id body = message.body;
         // 获取当前调用的 method 名称
@@ -275,17 +292,26 @@ NSString *const SHMWebViewVersion = @"1.35";
                 return;
             }
             
-            NSString *host = url.host;
+            NSString *origin = url.port ?
+                [NSString stringWithFormat:@"%@://%@:%@", url.scheme, url.host, url.port] :
+                [NSString stringWithFormat:@"%@://%@", url.scheme, url.host];
             
             // 非石墨外部链接，拦截后做外部打开的处理
-            if (host && self.hosts && ![self.hosts containsObject:host]) {
+            if (origin && self.origins && ![self.origins containsObject:origin]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodExternal];
                 return;
             }
             
-            // 石墨文件链接，在新 SHMWebView 打开
+            // 石墨文件链接在新 SHMWebView 打开
             if ([self.class isFileURL:url]) {
+                decisionHandler(WKNavigationActionPolicyCancel);
+                [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodNewWebView];
+                return;
+            }
+            
+            // 部分非石墨文件链接也需要在新 SHMWebView 打开
+            if ([self.class shouldOpenWindow:url]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodNewWebView];
                 return;
@@ -431,7 +457,7 @@ NSString *const SHMWebViewVersion = @"1.35";
         NSURL *url = navigationAction.request.URL;
         NSString *host = url.host;
         // 外部链接，拦截后外部打开
-        if (host && self.hosts && ![self.hosts containsObject:host]) {
+        if (host && self.origins && ![self.origins containsObject:host]) {
             return [self.delegate webview:self windowOpenWithMethod:SHMWebViewNavigateMethodExternal configuration:configuration forNavigationAction:navigationAction windowFeatures:windowFeatures];
         } else {
             // 其他石墨内部链接在新窗口打开
