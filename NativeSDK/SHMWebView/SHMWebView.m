@@ -160,14 +160,41 @@ NSString *const SHMWebViewVersion = @"1.35";
     }
 }
 
-
-+ (BOOL)shouldOpenWindow:(NSURL *)url {
-    NSArray<NSString *> *pathComponents = url.pathComponents;
++ (BOOL)shouldOpenInNewWebview:(nonnull NSURL *)url {
+    if ([self isFileURL:url]) {
+        return YES;
+    }
     
+    // 是否需要单独为某些页面新开窗口
+    // 比如协作者面板等
+    NSArray<NSString *> *pathComponents = url.pathComponents;
     if (pathComponents.count > 2) {
         return [pathComponents[2] isEqualToString:@"collaborators"];
     } else {
         return NO;
+    }
+}
+
+/// 链接是否指向首页
+/// @param url 链接
++ (BOOL)isInHome:(NSURL *)url {
+    NSArray<NSString *> *pathComponents = url.pathComponents;
+    if (pathComponents.count > 1) {
+        NSArray<NSString *> * homePaths = @[
+            @"recent", // 最近
+            @"favorites", // 收藏
+            @"created", // 创建
+            @"share", // 分享
+            @"folder", // 文件夹
+            @"space", // 团队空间
+            @"desktop" // 桌面
+        ];
+        
+        // 可用第一段 path 作为文件类型的判断
+        NSString *firstPath = pathComponents[1];
+        return [homePaths containsObject:firstPath];
+    } else {
+        return YES;
     }
 }
 
@@ -279,6 +306,8 @@ NSString *const SHMWebViewVersion = @"1.35";
 
 #pragma mark - WKNavigationDelegate
 
+
+/// 当前窗口跳转
 - (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler WK_SWIFT_ASYNC(3) {
     if ([self.navigationDelegate respondsToSelector:@selector(webView:decidePolicyForNavigationAction:decisionHandler:)]) {
         [self.navigationDelegate webView:webView decidePolicyForNavigationAction:navigationAction decisionHandler:decisionHandler];
@@ -286,34 +315,33 @@ NSString *const SHMWebViewVersion = @"1.35";
         // 只有顶层 frame 发生导航才处理，页面内部嵌套的 iframe 导航不管
         if (navigationAction.targetFrame.isMainFrame) {
             NSURL *url = navigationAction.request.URL;
+            
             // 加载当前 WebView 初始页面放行
             if ([webView.URL isEqual:url]) {
                 decisionHandler(WKNavigationActionPolicyAllow);
                 return;
             }
             
-            NSString *origin = url.port ?
-                [NSString stringWithFormat:@"%@://%@:%@", url.scheme, url.host, url.port] :
-                [NSString stringWithFormat:@"%@://%@", url.scheme, url.host];
-            
-            // 非石墨外部链接，拦截后做外部打开的处理
+            NSString *origin = url ? [self.class getOriginFromUrl:url] : nil;
+            // 非信任链接，拦截后外部打开
             if (origin && self.origins && ![self.origins containsObject:origin]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodExternal];
                 return;
             }
             
-            // 石墨文件链接在新 SHMWebView 打开
-            if ([self.class isFileURL:url]) {
+            // 是否需要在新 SHMWebView 打开链接
+            if ([self.class shouldOpenInNewWebview:url]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
                 [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodNewWebView];
                 return;
             }
             
-            // 部分非石墨文件链接也需要在新 SHMWebView 打开
-            if ([self.class shouldOpenWindow:url]) {
+            // 当将要打开链接是首页链接且当前页面是新 SHMWebView 打开的，则关闭当前页面
+            // 为了解决打开文件 > 菜单 > 删除文件，当前页面跳到首页问题，点击文件内的链接跳转不需要处理情况，所以不处理 window.open
+            if ([self.class isInHome:url] && [self.class shouldOpenInNewWebview:webView.URL]) {
                 decisionHandler(WKNavigationActionPolicyCancel);
-                [self.delegate webview:self navigateToUrl:url withMethod:SHMWebViewNavigateMethodNewWebView];
+                [self.delegate webview:self goBackToUrl:url];
                 return;
             }
         }
@@ -455,9 +483,9 @@ NSString *const SHMWebViewVersion = @"1.35";
         return [self.UIDelegate webView:webView createWebViewWithConfiguration:configuration forNavigationAction:navigationAction windowFeatures:windowFeatures];
     } else {
         NSURL *url = navigationAction.request.URL;
-        NSString *host = url.host;
+        NSString *origin = url ? [self.class getOriginFromUrl:url] : nil;
         // 外部链接，拦截后外部打开
-        if (host && self.origins && ![self.origins containsObject:host]) {
+        if (origin && self.origins && ![self.origins containsObject:origin]) {
             return [self.delegate webview:self windowOpenWithMethod:SHMWebViewNavigateMethodExternal configuration:configuration forNavigationAction:navigationAction windowFeatures:windowFeatures];
         } else {
             // 其他石墨内部链接在新窗口打开
@@ -652,6 +680,12 @@ NSString *const SHMWebViewVersion = @"1.35";
 
 - (NSString *)getButonKeyWithType:(nonnull NSString *)type payload:(nullable NSString *)payload {
     return [NSString stringWithFormat:@"type:%@_payload:%@", type, payload ?: @"nil"];
+}
+
++ (nonnull NSString *)getOriginFromUrl:(nonnull NSURL *)url {
+    return url.port ?
+        [NSString stringWithFormat:@"%@://%@:%@", url.scheme, url.host, url.port] :
+        [NSString stringWithFormat:@"%@://%@", url.scheme, url.host];
 }
 
 + (BOOL)isEmpty:(nullable NSString *)string {

@@ -11,6 +11,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+/// 非 SHMWebView 的 WebViewController
 @interface SHMOtherWebViewController : UIViewController
 
 @property (nonnull, nonatomic, strong) NSURL *url;

@@ -134,6 +134,10 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
     }
 }
 
+- (void)webview:(SHMWebView *)webview goBackToUrl:(NSURL *)url {
+    [self.navigationController popViewControllerAnimated:YES];
+}
+
 - (nullable WKWebView *)webview:(nonnull SHMWebView *)webview
            windowOpenWithMethod:(SHMWebViewNavigateMethod)method
                   configuration:(nonnull WKWebViewConfiguration *)configuration

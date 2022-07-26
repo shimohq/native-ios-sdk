@@ -29,7 +29,12 @@ typedef NS_ENUM(NSUInteger, SHMWebViewNavigateMethod) {
 /// @param method 打开 URL 的方式
 - (void)webview:(nonnull SHMWebView *)webview navigateToUrl:(nullable NSURL *)url withMethod:(SHMWebViewNavigateMethod)method;
 
-/// window.open 方式打开 URL
+/// 关闭当前页面，返回上一级页面
+/// @param webview SHMWebView 实例
+/// @param url 将要打开的 URL
+- (void)webview:(nonnull SHMWebView *)webview goBackToUrl:(nullable NSURL *)url;
+
+/// window.open 方式在新窗口打开 URL
 /// @param webview SHMWebView 实例
 /// @param method 打开 URL 的方式
 /// @return 将要打开 url 的 WKWebView 实例，返回 nil 将不会跳转
@@ -153,9 +158,10 @@ typedef NS_ENUM(NSUInteger, SHMWebViewNavigateMethod) {
 /// @param url 链接
 + (BOOL)isFileURL:(nonnull NSURL *)url;
 
-/// 是否需要单独为某些页面新开窗口
-/// 比如协作者面板等
-+ (BOOL)shouldOpenWindow:(nonnull NSURL *)url;
+/// 是否需要在新 SHMWebView 打开链接
+/// 包含石墨文件链接和部分非石墨文件的链接（例如：协作者页面）
+/// @param url 链接
++ (BOOL)shouldOpenInNewWebview:(nonnull NSURL *)url;
 
 @end
 
