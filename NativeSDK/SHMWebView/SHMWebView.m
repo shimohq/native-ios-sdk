@@ -181,6 +181,7 @@ NSString *const SHMWebViewVersion = @"1.35";
     NSArray<NSString *> *pathComponents = url.pathComponents;
     if (pathComponents.count > 1) {
         NSArray<NSString *> * homePaths = @[
+            @"dashboard",
             @"recent", // 最近
             @"favorites", // 收藏
             @"created", // 创建
