@@ -190,7 +190,7 @@ NSString *const SHMWebViewVersion = @"1.35";
             @"space", // 团队空间
             @"desktop", // 桌面
             @"notifications", // 通知
-            @"profile", // 我的
+            @"profile" // 我的
         ];
         
         // 可用第一段 path 作为文件类型的判断

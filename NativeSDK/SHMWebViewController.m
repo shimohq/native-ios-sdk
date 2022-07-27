@@ -130,23 +130,17 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         SHMWebViewController *viewController = [[SHMWebViewController alloc] init];
         viewController.url = url;
         viewController.origins = self.origins;
+        viewController.subWebView = YES;
         [self.navigationController pushViewController:viewController animated:YES];
     }
 }
 
 - (void)webview:(SHMWebView *)webview goBackToUrl:(NSURL *)url {
-    // 当前打开的 SHMWebViewController 数量
-    __block NSInteger number = 0;
-    [self.navigationController.viewControllers enumerateObjectsUsingBlock:^(__kindof UIViewController * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        if ([obj isKindOfClass:[self class]]) {
-            number++;
-        }
-    }];
-    if (number > 1) {
-        // 当前打开的 SHMWebViewController 数量大于 1，则可以返回到上一个 SHMWebViewController
+    if ([self isSubWebView]) {
+        // 当前的 SHMWebViewController 是从主 SHMWebViewController 打开的
         [self.navigationController popViewControllerAnimated:YES];
     } else {
-        // 无法返回到上一个 SHMWebViewController
+        // 当前的 SHMWebViewController 是主 SHMWebViewController
         [webview setUrl:url];
     }
 }
@@ -199,6 +193,7 @@ typedef NS_ENUM(NSUInteger, SHMWebViewOpenUrlMethod) {
         viewController.origins = self.origins;
         viewController.url = url;
         viewController.webview = shmWebview;
+        viewController.subWebView = YES;
         [self.navigationController pushViewController:viewController animated:YES];
         
         return wkWebView;

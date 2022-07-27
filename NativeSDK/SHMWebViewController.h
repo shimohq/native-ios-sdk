@@ -20,6 +20,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonnull, nonatomic, strong) NSURL *url;
 @property (nullable, nonatomic, copy) NSArray<NSString *> *origins;
 @property (nullable, nonatomic, strong) SHMWebView *webview;
+@property (nonatomic, assign, getter=isSubWebView) BOOL subWebView;
 
 @end
 
